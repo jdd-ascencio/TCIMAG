@@ -151,14 +151,23 @@ void MainWindow::ouvrirImage (const char* nomFichier){
         return;
     }
 
+    creerFenetre(QPixmap::fromImage(loadImg), tr(nomFichier)); //utiliser le path complet?
+
+    //this->centralWidget()->layout()->addWidget(subWindow);
+}
+
+void MainWindow::creerFenetre(const QPixmap& pixmap, const QString& titre = ""){
+    if (pixmap.isNull())
+        return;
+
     QLabel* labelImage = new QLabel();
     labelImage->setWindowFlags(Qt::FramelessWindowHint);
     labelImage->setMouseTracking(true);
     labelImage->installEventFilter(this);
     labelImage->show();
     labelImage->setScaledContents(true);
-    labelImage->setFixedSize(loadImg.size());
-    labelImage->setPixmap(QPixmap::fromImage(loadImg));
+    labelImage->setFixedSize(pixmap.size());
+    labelImage->setPixmap(pixmap);
     scaleFactor[qHash(labelImage)] = 1.0;
 
     QScrollArea* scrollArea = new QScrollArea();
@@ -167,8 +176,8 @@ void MainWindow::ouvrirImage (const char* nomFichier){
 
     QMdiSubWindow* subWindow = new QMdiSubWindow();
     subWindow->setParent(this->centralWidget());
-    subWindow->setWindowTitle(tr(nomFichier)); //utiliser le path complet?
-    subWindow->setMinimumSize ((int)(loadImg.width () / 5), (int)(loadImg.height () / 5));
+    subWindow->setWindowTitle(titre);
+    subWindow->setMinimumSize ((int)(pixmap.width () / 5), (int)(pixmap.height () / 5));
     subWindow->setWidget(scrollArea);
     subWindow->show();
 

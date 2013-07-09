@@ -72,6 +72,7 @@ private:
 
     const QPixmap imageToQPixmap (const char* nomFichier);//, QImage::Format format);
     void ouvrirImage (const char* nomFichier);
+    void creerFenetre(const QPixmap& pixmap, const QString &titre);
     void scaleImage (double factor, QScrollArea* paneau);
     void adjustScrollBar (double factor, QScrollBar* scrollBar);
     void updateZoomActions (QLabel* image);
