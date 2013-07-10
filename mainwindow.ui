@@ -1,4 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--!
+- @file mainwindow.ui
+- @author Juan ASCENCIO
+- @version 1.0
+- @date Juillet 2013
+- @copyright INSA LYON
+- Creation date 2013-07-04T17:30:28
+-->
 <ui version="4.0">
  <class>MainWindow</class>
  <widget class="QMainWindow" name="MainWindow">
@@ -226,14 +234,6 @@
    <addaction name="menuSegmentation"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
-  <widget class="QToolBar" name="mainToolBar">
-   <attribute name="toolBarArea">
-    <enum>TopToolBarArea</enum>
-   </attribute>
-   <attribute name="toolBarBreak">
-    <bool>false</bool>
-   </attribute>
-  </widget>
   <action name="actionQuitter">
    <property name="text">
     <string>Quitter</string>
