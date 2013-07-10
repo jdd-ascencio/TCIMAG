@@ -76,13 +76,76 @@ MainWindow::MainWindow (QWidget* parent) : QMainWindow (parent), ui (new Ui::Mai
     //QLayout* layout = new QHBoxLayout;
     //this->centralWidget()->setLayout(layout);
 
-    ouvrirImage("../TCIMAG_ressources/lena.bmp");
+    //ouvrirImage("../TCIMAG_ressources/lena.bmp");
     //ouvrirImage("../TCIMAG_ressources/lena.jpg");
     //ouvrirImage("../TCIMAG_ressources/lena.jpeg");
     //ouvrirImage("../TCIMAG_ressources/lena.png");
     //ouvrirImage("../TCIMAG_ressources/lena.pgm");
     //ouvrirImage("../TCIMAG_ressources/lena.ppm");
     //ouvrirImage("../TCIMAG_ressources/lena.tiff");
+    //QPixmap pixmap = imageToQPixmap("../TCIMAG_ressources/lena.bmp", QImage::Format_RGB888);
+    QPixmap pixmap = imageToQPixmap("../TCIMAG_ressources/Histogram_Calculation_Original_Image.jpg", QImage::Format_RGB888);
+    creerFenetre(pixmap, "test");
+
+    QImage argbImage = pixmap.toImage();
+    QImage rgbImage = argbImage.convertToFormat(QImage::Format_RGB888, Qt::ColorOnly);
+    ////cv::Mat (int _rows, int _cols, int _type, void* _data, size_t _step=AUTO_STEP);
+    cv::Mat matRGB(rgbImage.width(), rgbImage.height(), CV_8UC3, rgbImage.bits(), rgbImage.bytesPerLine());
+    cv::Mat matBGR;
+    cv::cvtColor(matRGB, matBGR, CV_RGB2BGR);
+
+    std::vector<cv::Mat> bgr_planes;
+    split (matBGR, bgr_planes);
+
+    /// Establish the number of bins
+    int histSize = 256;
+
+    /// Set the ranges ( for B,G,R) )
+    float range[] = { 0, 256 } ;
+    const float* histRange = { range };
+
+    bool uniform = true; bool accumulate = false;
+
+    cv::Mat b_hist, g_hist, r_hist;
+
+    /// Compute the histograms:
+    cv::calcHist( &bgr_planes[0], 1, 0, cv::Mat(), b_hist, 1, &histSize, &histRange, uniform, accumulate );
+    cv::calcHist( &bgr_planes[1], 1, 0, cv::Mat(), g_hist, 1, &histSize, &histRange, uniform, accumulate );
+    cv::calcHist( &bgr_planes[2], 1, 0, cv::Mat(), r_hist, 1, &histSize, &histRange, uniform, accumulate );
+
+
+    // Draw the histograms for B, G and R
+    int hist_w = 512; int hist_h = 400;
+    int bin_w = cvRound( (double) hist_w/histSize );
+
+    cv::Mat histImage( hist_h, hist_w, CV_8UC3, cv::Scalar( 0,0,0) );
+
+    /// Normalize the result to [ 0, histImage.rows ]
+    cv::normalize(b_hist, b_hist, 0, histImage.rows, cv::NORM_MINMAX, -1, cv::Mat() );
+    cv::normalize(g_hist, g_hist, 0, histImage.rows, cv::NORM_MINMAX, -1, cv::Mat() );
+    cv::normalize(r_hist, r_hist, 0, histImage.rows, cv::NORM_MINMAX, -1, cv::Mat() );
+
+    /// Draw for each channel
+    for( int i = 1; i < histSize; i++ ) {
+        cv::line( histImage, cv::Point( bin_w*(i-1), hist_h - cvRound(b_hist.at<float>(i-1)) ) ,
+                         cv::Point( bin_w*(i), hist_h - cvRound(b_hist.at<float>(i)) ),
+                         cv::Scalar( 255, 0, 0), 2, 8, 0  );
+        cv::line( histImage, cv::Point( bin_w*(i-1), hist_h - cvRound(g_hist.at<float>(i-1)) ) ,
+                         cv::Point( bin_w*(i), hist_h - cvRound(g_hist.at<float>(i)) ),
+                         cv::Scalar( 0, 255, 0), 2, 8, 0  );
+        cv::line( histImage, cv::Point( bin_w*(i-1), hist_h - cvRound(r_hist.at<float>(i-1)) ) ,
+                         cv::Point( bin_w*(i), hist_h - cvRound(r_hist.at<float>(i)) ),
+                         cv::Scalar( 0, 0, 255), 2, 8, 0  );
+    }
+
+    cv::Mat rgbMat;
+    cv::cvtColor(histImage, rgbMat, CV_BGR2RGB);
+    ////QImage::QImage ( const uchar * data, int width, int height, int bytesPerLine, Format format )
+    QImage rgbImg = QImage((uchar*)rgbMat.data, rgbMat.cols, rgbMat.rows, rgbMat.step, QImage::Format_RGB888);
+    creerFenetre(QPixmap::fromImage(rgbImg), "test2");
+
+    /*QImage qImage = cvBGRToQtRGB(histImage, QImage::Format_RGB888);
+    creerFenetre(QPixmap::fromImage(qImage), "test2");*/
 }
 
 MainWindow::~MainWindow ()
@@ -123,21 +186,26 @@ bool MainWindow::eventFilter (QObject* watched, QEvent* e) {
     return QWidget::eventFilter(watched, e);
 }
 
-const cv::Mat MainWindow::qtRGBToCvBGR (const QImage& rgbImage, enum QImage::Format format = QImage::Format_RGB888){
-    return cv::Mat();
+const cv::Mat MainWindow::qtRGBToCvBGR (const QImage& argbImage, enum QImage::Format format = QImage::Format_RGB888){
+    if (argbImage.isNull())
+        return cv::Mat();
+    QImage rgbImage = argbImage.convertToFormat(format, Qt::ColorOnly);
+    ////cv::Mat (int _rows, int _cols, int _type, void* _data, size_t _step=AUTO_STEP);
+    cv::Mat matRGB(rgbImage.width(), rgbImage.height(), CV_8UC3, rgbImage.bits(), rgbImage.bytesPerLine());
+    /*cv::Mat matBGR;
+    cv::cvtColor(matRGB, matBGR, CV_RGB2BGR);*/
+    cv::Mat* matBGR = new cv::Mat(matRGB);
+    cv::cvtColor(matRGB, *matBGR, CV_RGB2BGR);
+    return *matBGR;
 }
 
 const QImage MainWindow::cvBGRToQtRGB (const cv::Mat& bgrImage, enum QImage::Format format = QImage::Format_RGB888) {
-    if (!bgrImage.data) {
+    if (!bgrImage.data)
         return QImage();
-        std::cout << "bgrImage is empty!" << std::endl;
-    }
-    std::cout << format << "==" << QImage::Format_RGB888 << "? " << (format == QImage::Format_RGB888) << std::endl;
     cv::Mat* matRGB = new cv::Mat(bgrImage);
     cv::cvtColor(bgrImage, *matRGB, CV_BGR2RGB);
     ////QImage::QImage ( const uchar * data, int width, int height, int bytesPerLine, Format format )
     QImage rgbImg = QImage((uchar*)matRGB->data, matRGB->cols, matRGB->rows, matRGB->step, format);
-    std::cout << "rgbImage " << (uchar*) rgbImg.bits() << std::endl;
     return rgbImg;
 }
 
@@ -148,15 +216,11 @@ const QPixmap MainWindow::imageToQPixmap (const char* nomFichier, enum QImage::F
         std::cerr << "echec chargement image depuis fichier: " << nomFichier << std::endl;
         return QPixmap();
     }
-    /*
     cv::Mat matRGB;
     cv::cvtColor(loadImg, matRGB, CV_BGR2RGB);
     ////QImage::QImage ( const uchar * data, int width, int height, int bytesPerLine, Format format )
-    QImage qLoadImg ((uchar*)matRGB.data, matRGB.cols, matRGB.rows, matRGB.step, format);*/
-    QImage qLoadImg = cvBGRToQtRGB(loadImg);
-    std::cout << "qLoadImage is null? " << qLoadImg.isNull() << std::endl;
-    std::cout << "qLoadImage " << (uchar*) qLoadImg.bits() << std::endl;
-    return QPixmap::fromImage(qLoadImg);
+    QImage rgbImg = QImage((uchar*)matRGB.data, matRGB.cols, matRGB.rows, matRGB.step, format);
+    return QPixmap::fromImage(rgbImg);
 }
 
 void MainWindow::ouvrirImage (const char* nomFichier){
@@ -170,7 +234,7 @@ void MainWindow::ouvrirImage (const char* nomFichier){
     creerFenetre(imageToQPixmap(nomFichier), tr(nomFichier));
 
     ////Qt charge l'image
-    //creerFenetre(QPixmap::fromImage(loadImg), tr(nomFichier))
+    //creerFenetre(QPixmap::fromImage(loadImg), tr(nomFichier));
     ////todo: utiliser le path complet pour le titre?
 
     //this->centralWidget()->layout()->addWidget(subWindow);
