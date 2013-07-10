@@ -77,10 +77,10 @@ MainWindow::MainWindow (QWidget* parent) : QMainWindow (parent), ui (new Ui::Mai
     //this->centralWidget()->setLayout(layout);
 
     ouvrirImage("../TCIMAG_ressources/lena.bmp");
-    ouvrirImage("../TCIMAG_ressources/lena.jpg");
+    //ouvrirImage("../TCIMAG_ressources/lena.jpg");
     //ouvrirImage("../TCIMAG_ressources/lena.jpeg");
     //ouvrirImage("../TCIMAG_ressources/lena.png");
-    ouvrirImage("../TCIMAG_ressources/lena.pgm");
+    //ouvrirImage("../TCIMAG_ressources/lena.pgm");
     //ouvrirImage("../TCIMAG_ressources/lena.ppm");
     //ouvrirImage("../TCIMAG_ressources/lena.tiff");
 }
@@ -123,6 +123,23 @@ bool MainWindow::eventFilter (QObject* watched, QEvent* e) {
     return QWidget::eventFilter(watched, e);
 }
 
+const cv::Mat MainWindow::qtRGBToCvBGR (const QImage& rgbImage, enum QImage::Format format = QImage::Format_RGB888){
+    return cv::Mat();
+}
+
+const QImage MainWindow::cvBGRToQtRGB (const cv::Mat& bgrImage, enum QImage::Format format = QImage::Format_RGB888) {
+    if (!bgrImage.data) {
+        return QImage();
+        std::cout << "bgrImage is empty!" << std::endl;
+    }
+    std::cout << format << "==" << QImage::Format_RGB888 << "? " << (format == QImage::Format_RGB888) << std::endl;
+    cv::Mat* matRGB = new cv::Mat(bgrImage);
+    cv::cvtColor(bgrImage, *matRGB, CV_BGR2RGB);
+    ////QImage::QImage ( const uchar * data, int width, int height, int bytesPerLine, Format format )
+    QImage rgbImg = QImage((uchar*)matRGB->data, matRGB->cols, matRGB->rows, matRGB->step, format);
+    std::cout << "rgbImage " << (uchar*) rgbImg.bits() << std::endl;
+    return rgbImg;
+}
 
 const QPixmap MainWindow::imageToQPixmap (const char* nomFichier, enum QImage::Format format = QImage::Format_RGB888) {
     cv::Mat loadImg;
@@ -131,9 +148,14 @@ const QPixmap MainWindow::imageToQPixmap (const char* nomFichier, enum QImage::F
         std::cerr << "echec chargement image depuis fichier: " << nomFichier << std::endl;
         return QPixmap();
     }
+    /*
     cv::Mat matRGB;
     cv::cvtColor(loadImg, matRGB, CV_BGR2RGB);
-    QImage qLoadImg ((uchar*)matRGB.data, matRGB.cols, matRGB.rows, matRGB.step, format);
+    ////QImage::QImage ( const uchar * data, int width, int height, int bytesPerLine, Format format )
+    QImage qLoadImg ((uchar*)matRGB.data, matRGB.cols, matRGB.rows, matRGB.step, format);*/
+    QImage qLoadImg = cvBGRToQtRGB(loadImg);
+    std::cout << "qLoadImage is null? " << qLoadImg.isNull() << std::endl;
+    std::cout << "qLoadImage " << (uchar*) qLoadImg.bits() << std::endl;
     return QPixmap::fromImage(qLoadImg);
 }
 
