@@ -1,12 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--!
- - @file mainwindow.ui
- - @author Juan ASCENCIO
- - @version 1.0
- - @date Juillet 2013
- - @copyright INSA LYON
- - Creation date 2013-07-04T17:30:28
- -->
 <ui version="4.0">
  <class>MainWindow</class>
  <widget class="QMainWindow" name="MainWindow">
@@ -39,16 +31,199 @@
     <addaction name="separator"/>
     <addaction name="actionQuitter"/>
    </widget>
-   <widget class="QMenu" name="menuVue">
+   <widget class="QMenu" name="menuAffichage">
     <property name="title">
-     <string>Vue</string>
+     <string>Affichage</string>
     </property>
     <addaction name="actionTailleNormale"/>
     <addaction name="actionZoomIn"/>
     <addaction name="actionZoomOut"/>
    </widget>
+   <widget class="QMenu" name="menuOutils">
+    <property name="title">
+     <string>Outils</string>
+    </property>
+    <widget class="QMenu" name="menuHistogramme">
+     <property name="title">
+      <string>Histogramme</string>
+     </property>
+     <addaction name="actionAffichage"/>
+     <addaction name="separator"/>
+     <addaction name="actionRecadrage"/>
+     <addaction name="actionNegatif"/>
+     <addaction name="actionCalibration"/>
+     <addaction name="actionGainOffsetHistogramme"/>
+     <addaction name="separator"/>
+     <addaction name="actionEgalisation"/>
+     <addaction name="actionEgalisationLocale"/>
+     <addaction name="actionEgalisationInverse"/>
+     <addaction name="separator"/>
+     <addaction name="actionExponentielle"/>
+     <addaction name="actionLogarithmique"/>
+     <addaction name="actionRacineCubique"/>
+    </widget>
+    <widget class="QMenu" name="menuCalculArithmetique">
+     <property name="title">
+      <string>Calcul Arithmétique</string>
+     </property>
+     <addaction name="actionAddition"/>
+     <addaction name="actionSoustraction"/>
+     <addaction name="actionMultiplication"/>
+     <addaction name="actionCombinaison"/>
+     <addaction name="separator"/>
+     <addaction name="actionGainOffsetArithmetique"/>
+     <addaction name="separator"/>
+     <addaction name="actionMinimum"/>
+     <addaction name="actionMaximum"/>
+    </widget>
+    <widget class="QMenu" name="menuCalculLogique">
+     <property name="title">
+      <string>Calcul Logique</string>
+     </property>
+     <addaction name="actionAND"/>
+     <addaction name="actionOR"/>
+     <addaction name="actionXOR"/>
+     <addaction name="actionNOT"/>
+     <addaction name="actionPlanBinaire"/>
+     <addaction name="actionQuantification"/>
+    </widget>
+    <widget class="QMenu" name="menuGeometrie">
+     <property name="title">
+      <string>Géométrie</string>
+     </property>
+     <addaction name="actionChangementDEchelle"/>
+     <addaction name="actionChangementDeTaille"/>
+     <addaction name="actionMosaique"/>
+     <addaction name="separator"/>
+     <addaction name="actionSymetrieAxeOx"/>
+     <addaction name="actionSymetrieAxeOy"/>
+     <addaction name="actionRotation"/>
+     <addaction name="actionRotationInterpolee"/>
+     <addaction name="separator"/>
+     <addaction name="actionTransposee"/>
+     <addaction name="actionRotation90plus"/>
+     <addaction name="actionRotation90moins"/>
+     <addaction name="separator"/>
+     <addaction name="actionRegionDInteretGeometrie"/>
+     <addaction name="separator"/>
+     <addaction name="actionVuePerspective"/>
+    </widget>
+    <widget class="QMenu" name="menuDessin">
+     <property name="title">
+      <string>Dessin</string>
+     </property>
+     <addaction name="actionLignes"/>
+     <addaction name="actionRectangles"/>
+     <addaction name="actionCercles"/>
+     <addaction name="actionEllipses"/>
+     <addaction name="actionCourbes"/>
+     <addaction name="actionPolygones"/>
+     <addaction name="separator"/>
+     <addaction name="actionRegionDInteretDessin"/>
+     <addaction name="separator"/>
+     <addaction name="actionParametres"/>
+    </widget>
+    <widget class="QMenu" name="menuPerturbation">
+     <property name="title">
+      <string>Perturbation</string>
+     </property>
+     <addaction name="actionBruitUniforme"/>
+     <addaction name="actionBruitPoivreEtSel"/>
+    </widget>
+    <widget class="QMenu" name="menuGeneration">
+     <property name="title">
+      <string>Génération</string>
+     </property>
+     <addaction name="actionUniforme"/>
+     <addaction name="actionBord"/>
+     <addaction name="actionRampe"/>
+    </widget>
+    <addaction name="menuHistogramme"/>
+    <addaction name="menuCalculArithmetique"/>
+    <addaction name="menuCalculLogique"/>
+    <addaction name="menuGeometrie"/>
+    <addaction name="menuDessin"/>
+    <addaction name="menuPerturbation"/>
+    <addaction name="menuGeneration"/>
+   </widget>
+   <widget class="QMenu" name="menuFiltrage">
+    <property name="title">
+     <string>Filtrage</string>
+    </property>
+    <widget class="QMenu" name="menuFrequentiel">
+     <property name="title">
+      <string>Fréquentiel</string>
+     </property>
+     <addaction name="actionFFT"/>
+     <addaction name="actionFiltrageFrequentiel"/>
+    </widget>
+    <addaction name="actionMoyenneur3x3"/>
+    <addaction name="actionMoyenneurNxN"/>
+    <addaction name="actionLaplacien"/>
+    <addaction name="separator"/>
+    <addaction name="actionCorrectionGradient"/>
+    <addaction name="separator"/>
+    <addaction name="actionMedian"/>
+    <addaction name="actionFiltreV"/>
+    <addaction name="separator"/>
+    <addaction name="menuFrequentiel"/>
+   </widget>
+   <widget class="QMenu" name="menuSegmentation">
+    <property name="title">
+     <string>Segmentation</string>
+    </property>
+    <widget class="QMenu" name="menuSeuillageSimple">
+     <property name="title">
+      <string>Seuillage Simple</string>
+     </property>
+     <addaction name="actionManuelSimple"/>
+     <addaction name="separator"/>
+     <addaction name="actionVarianceSimple"/>
+     <addaction name="actionEntropieSimple"/>
+    </widget>
+    <widget class="QMenu" name="menuSeuillageDouble">
+     <property name="title">
+      <string>Seuillage Double</string>
+     </property>
+     <addaction name="actionManuelDouble"/>
+     <addaction name="separator"/>
+     <addaction name="actionVarianceDouble"/>
+     <addaction name="actionEntropieDouble"/>
+    </widget>
+    <widget class="QMenu" name="menuSobel">
+     <property name="title">
+      <string>Sobel</string>
+     </property>
+     <addaction name="actionNormeSobel"/>
+     <addaction name="actionGradientXSobel"/>
+     <addaction name="actionGradientYSobel"/>
+     <addaction name="actionMaximaSobel"/>
+    </widget>
+    <widget class="QMenu" name="menuPrewitt">
+     <property name="title">
+      <string>Prewitt</string>
+     </property>
+     <addaction name="actionNormePrewitt"/>
+     <addaction name="actionGradientXPrewitt"/>
+     <addaction name="actionGradientYPrewitt"/>
+     <addaction name="actionMaximaPrewitt"/>
+    </widget>
+    <addaction name="menuSeuillageSimple"/>
+    <addaction name="menuSeuillageDouble"/>
+    <addaction name="actionSeuillageParHysteresis"/>
+    <addaction name="actionBiseuillage"/>
+    <addaction name="separator"/>
+    <addaction name="menuSobel"/>
+    <addaction name="menuPrewitt"/>
+    <addaction name="actionDeriche"/>
+    <addaction name="separator"/>
+    <addaction name="actionContourage"/>
+   </widget>
    <addaction name="menuFichier"/>
-   <addaction name="menuVue"/>
+   <addaction name="menuAffichage"/>
+   <addaction name="menuOutils"/>
+   <addaction name="menuFiltrage"/>
+   <addaction name="menuSegmentation"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <widget class="QToolBar" name="mainToolBar">
@@ -91,6 +266,606 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+0</string>
+   </property>
+  </action>
+  <action name="actionAffichage">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Affichage</string>
+   </property>
+  </action>
+  <action name="actionRecadrage">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Recadrage</string>
+   </property>
+  </action>
+  <action name="actionNegatif">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Négatif</string>
+   </property>
+  </action>
+  <action name="actionCalibration">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Calibration</string>
+   </property>
+  </action>
+  <action name="actionGainOffsetHistogramme">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Gain/Offset</string>
+   </property>
+  </action>
+  <action name="actionEgalisation">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Égalisation</string>
+   </property>
+  </action>
+  <action name="actionEgalisationLocale">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Égalisation Locale (CLAHE)</string>
+   </property>
+  </action>
+  <action name="actionEgalisationInverse">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Égalisation Inverse</string>
+   </property>
+  </action>
+  <action name="actionExponentielle">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Exponentielle</string>
+   </property>
+  </action>
+  <action name="actionLogarithmique">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Logarithmique</string>
+   </property>
+  </action>
+  <action name="actionRacineCubique">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Racine Cubique</string>
+   </property>
+  </action>
+  <action name="actionAddition">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Addition</string>
+   </property>
+  </action>
+  <action name="actionSoustraction">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Soustraction</string>
+   </property>
+  </action>
+  <action name="actionMultiplication">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Multiplication</string>
+   </property>
+  </action>
+  <action name="actionCombinaison">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Combinaison</string>
+   </property>
+  </action>
+  <action name="actionGainOffsetArithmetique">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Gain/Offset</string>
+   </property>
+  </action>
+  <action name="actionMinimum">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Minimum</string>
+   </property>
+  </action>
+  <action name="actionMaximum">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Maximum</string>
+   </property>
+  </action>
+  <action name="actionAND">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>AND</string>
+   </property>
+  </action>
+  <action name="actionOR">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>OR</string>
+   </property>
+  </action>
+  <action name="actionXOR">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>XOR</string>
+   </property>
+  </action>
+  <action name="actionNOT">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>NOT</string>
+   </property>
+  </action>
+  <action name="actionPlanBinaire">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Plan Binaire</string>
+   </property>
+  </action>
+  <action name="actionQuantification">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Quantification</string>
+   </property>
+  </action>
+  <action name="actionChangementDEchelle">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Changement d'Échelle</string>
+   </property>
+  </action>
+  <action name="actionChangementDeTaille">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Changement de Taille</string>
+   </property>
+  </action>
+  <action name="actionMosaique">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Mosaïque</string>
+   </property>
+  </action>
+  <action name="actionSymetrieAxeOx">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Symétrie Axe OX</string>
+   </property>
+  </action>
+  <action name="actionSymetrieAxeOy">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Symétrie Axe OY</string>
+   </property>
+  </action>
+  <action name="actionRotation">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Rotation</string>
+   </property>
+  </action>
+  <action name="actionRotationInterpolee">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Rotation Interpolée</string>
+   </property>
+  </action>
+  <action name="actionTransposee">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Transposée</string>
+   </property>
+  </action>
+  <action name="actionRotation90plus">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Rotation +90°</string>
+   </property>
+  </action>
+  <action name="actionRotation90moins">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Rotation -90°</string>
+   </property>
+  </action>
+  <action name="actionRegionDInteretGeometrie">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Région d'Intérêt</string>
+   </property>
+  </action>
+  <action name="actionVuePerspective">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Vue Perspective</string>
+   </property>
+  </action>
+  <action name="actionLignes">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Lignes</string>
+   </property>
+  </action>
+  <action name="actionRectangles">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Rectangles</string>
+   </property>
+  </action>
+  <action name="actionCercles">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Cercles</string>
+   </property>
+  </action>
+  <action name="actionEllipses">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Ellipses</string>
+   </property>
+  </action>
+  <action name="actionCourbes">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Courbes</string>
+   </property>
+  </action>
+  <action name="actionPolygones">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Polygones</string>
+   </property>
+  </action>
+  <action name="actionRegionDInteretDessin">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Région d'Intérêt</string>
+   </property>
+  </action>
+  <action name="actionParametres">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Paramêtres</string>
+   </property>
+  </action>
+  <action name="actionBruitUniforme">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Bruit Uniforme</string>
+   </property>
+  </action>
+  <action name="actionBruitPoivreEtSel">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Bruit Poivre et Sel</string>
+   </property>
+  </action>
+  <action name="actionUniforme">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Uniforme</string>
+   </property>
+  </action>
+  <action name="actionBord">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Bord</string>
+   </property>
+  </action>
+  <action name="actionRampe">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Rampe</string>
+   </property>
+  </action>
+  <action name="actionMoyenneur3x3">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Moyenneur 3x3</string>
+   </property>
+  </action>
+  <action name="actionMoyenneurNxN">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Moyenneur nxn (séparable)</string>
+   </property>
+  </action>
+  <action name="actionLaplacien">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Laplacien</string>
+   </property>
+  </action>
+  <action name="actionCorrectionGradient">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>CorrectionGradient</string>
+   </property>
+  </action>
+  <action name="actionMedian">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Médian</string>
+   </property>
+  </action>
+  <action name="actionFiltreV">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Filtre-V</string>
+   </property>
+  </action>
+  <action name="actionFFT">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>FFT</string>
+   </property>
+  </action>
+  <action name="actionFiltrageFrequentiel">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Filtrage Fréquentiel</string>
+   </property>
+  </action>
+  <action name="actionSeuillageParHysteresis">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Seuillage  par Hystérésis</string>
+   </property>
+  </action>
+  <action name="actionBiseuillage">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Bi-seuillage</string>
+   </property>
+  </action>
+  <action name="actionDeriche">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Deriche</string>
+   </property>
+  </action>
+  <action name="actionContourage">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Contourage</string>
+   </property>
+  </action>
+  <action name="actionManuelSimple">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Manuel</string>
+   </property>
+  </action>
+  <action name="actionVarianceSimple">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Variance</string>
+   </property>
+  </action>
+  <action name="actionEntropieSimple">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Entropie</string>
+   </property>
+  </action>
+  <action name="actionManuelDouble">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Manuel</string>
+   </property>
+  </action>
+  <action name="actionVarianceDouble">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Variance</string>
+   </property>
+  </action>
+  <action name="actionEntropieDouble">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Entropie</string>
+   </property>
+  </action>
+  <action name="actionNormeSobel">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Norme</string>
+   </property>
+  </action>
+  <action name="actionGradientXSobel">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Gradient X</string>
+   </property>
+  </action>
+  <action name="actionGradientYSobel">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Gradient Y</string>
+   </property>
+  </action>
+  <action name="actionMaximaSobel">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Maxima</string>
+   </property>
+  </action>
+  <action name="actionNormePrewitt">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Norme</string>
+   </property>
+  </action>
+  <action name="actionGradientXPrewitt">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Gradient X</string>
+   </property>
+  </action>
+  <action name="actionGradientYPrewitt">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Gradient Y</string>
+   </property>
+  </action>
+  <action name="actionMaximaPrewitt">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Maxima</string>
    </property>
   </action>
  </widget>
