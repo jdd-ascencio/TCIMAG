@@ -124,22 +124,15 @@ bool MainWindow::eventFilter (QObject* watched, QEvent* e) {
 }
 
 
-const QPixmap MainWindow::imageToQPixmap (const char* nomFichier){//, QImage::Format format = QImage::Format_RGB888){
-    QImage::Format format = QImage::Format_RGB888;
-    IplImage* loadImg;
-    loadImg = cvLoadImage (nomFichier);
-    if (!loadImg) {
+const QPixmap MainWindow::imageToQPixmap (const char* nomFichier, enum QImage::Format format = QImage::Format_RGB888) {
+    cv::Mat loadImg;
+    loadImg = cv::imread(nomFichier, CV_LOAD_IMAGE_COLOR);
+    if (!loadImg.data) {
         std::cerr << "echec chargement image depuis fichier: " << nomFichier << std::endl;
         return QPixmap();
     }
-    cv::Mat matBGR(loadImg);
-    if (matBGR.empty()) {
-        std::cerr << "echec conversion image matrice" << std::endl;
-        return QPixmap();
-    }
     cv::Mat matRGB;
-    cv::cvtColor(matBGR, matRGB, CV_BGR2RGB);
-    cvReleaseImage(&loadImg);
+    cv::cvtColor(loadImg, matRGB, CV_BGR2RGB);
     QImage qLoadImg ((uchar*)matRGB.data, matRGB.cols, matRGB.rows, matRGB.step, format);
     return QPixmap::fromImage(qLoadImg);
 }
@@ -151,12 +144,17 @@ void MainWindow::ouvrirImage (const char* nomFichier){
         return;
     }
 
-    creerFenetre(QPixmap::fromImage(loadImg), tr(nomFichier)); //utiliser le path complet?
+    ////OpenCV charge l'image
+    creerFenetre(imageToQPixmap(nomFichier), tr(nomFichier));
+
+    ////Qt charge l'image
+    //creerFenetre(QPixmap::fromImage(loadImg), tr(nomFichier))
+    ////todo: utiliser le path complet pour le titre?
 
     //this->centralWidget()->layout()->addWidget(subWindow);
 }
 
-void MainWindow::creerFenetre(const QPixmap& pixmap, const QString& titre = ""){
+void MainWindow::creerFenetre(const QPixmap& pixmap, const QString& titre = "") {
     if (pixmap.isNull())
         return;
 

@@ -70,13 +70,15 @@ private:
 
     bool eventFilter (QObject* watched, QEvent* e);
 
-    const QPixmap imageToQPixmap (const char* nomFichier);//, QImage::Format format);
+    const QPixmap imageToQPixmap (const char* nomFichier, enum QImage::Format format);
+    QImage cvBGRToQtRGB (const cv::Mat& bgrImage, enum QImage::Format format);
+    cv::Mat qtRGBToCvBGR (const QImage& rgbImage, enum QImage::Format format);
     void ouvrirImage (const char* nomFichier);
-    void creerFenetre(const QPixmap& pixmap, const QString &titre);
+    void creerFenetre (const QPixmap& pixmap, const QString &titre);
     void scaleImage (double factor, QScrollArea* paneau);
     void adjustScrollBar (double factor, QScrollBar* scrollBar);
     void updateZoomActions (QLabel* image);
-    QScrollArea* getFocusedArea();
+    QScrollArea* getFocusedArea ();
 
 private slots:
     void on_actionOuvrir_triggered ();
