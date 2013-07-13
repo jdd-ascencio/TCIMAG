@@ -73,13 +73,14 @@ private:
 
     const cv::Mat qtRGBToCvBGR (const QImage& argbImage, enum QImage::Format format);
     const QImage cvBGRToQtRGB (const cv::Mat& bgrImage, enum QImage::Format format);
-    const QPixmap imageToQPixmap (const char* nomFichier, enum QImage::Format format);
+    const QPixmap imageToQPixmap (const char* nomFichier);
     void ouvrirImage (const char* nomFichier);
     void creerFenetre (const QPixmap& pixmap, const QString &titre);
     void scaleImage (double factor, QScrollArea* paneau);
     void adjustScrollBar (double factor, QScrollBar* scrollBar);
     void updateZoomActions (QLabel* image);
     QScrollArea* getFocusedArea ();
+    void afficherHistogramme (QLabel* label);
     void calculerHistogramme(QImage argbImage, QString titre);
 
 private slots:

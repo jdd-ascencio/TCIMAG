@@ -68,72 +68,6 @@ const char* MainWindow::PATTERN_OUVERTURE_IMAGES_QT_ET_OPENCV = "Images Windows 
                                                          "Tout Type (*.*)";
 const char* MainWindow::DOSSIER_DEFAUT_OUVERTURE_IMAGES = "./../TCIMAG_ressources";
 
-void QImageTocvMat(QImage* in, cv::Mat* out) {
-    *in = in->convertToFormat(QImage::Format_RGB888, Qt::ColorOnly);
-    ////cv::Mat (int _rows, int _cols, int _type, void* _data, size_t _step=AUTO_STEP);
-    cv::Mat matRGB(in->width(), in->height(), CV_8UC3, in->bits(), in->bytesPerLine());
-    cv::cvtColor(matRGB, *out, CV_RGB2BGR);
-}
-
-void cvMatToQImage(cv::Mat* in, QImage* out) {
-    cv::cvtColor(*in, *in, CV_BGR2RGB);
-    ////QImage::QImage ( const uchar * data, int width, int height, int bytesPerLine, Format format )
-    *out = QImage((uchar*)in->data, in->cols, in->rows, in->step, QImage::Format_RGB888);
-}
-
-void MainWindow::calculerHistogramme(QImage argbImage, QString titre) {
-    cv::Mat bgrMat;
-    QImageTocvMat(&argbImage, &bgrMat);
-
-    std::vector<cv::Mat> bgr_planes;
-    split (bgrMat, bgr_planes);
-
-    //// Establish the number of bins
-    int histSize = 256;
-
-    //// Set the ranges ( for B,G,R) )
-    float range[] = { 0, 256 } ;
-    const float* histRange = { range };
-
-    bool uniform = true; bool accumulate = false;
-
-    cv::Mat b_hist, g_hist, r_hist;
-
-    //// Compute the histograms:
-    cv::calcHist( &bgr_planes[0], 1, 0, cv::Mat(), b_hist, 1, &histSize, &histRange, uniform, accumulate );
-    cv::calcHist( &bgr_planes[1], 1, 0, cv::Mat(), g_hist, 1, &histSize, &histRange, uniform, accumulate );
-    cv::calcHist( &bgr_planes[2], 1, 0, cv::Mat(), r_hist, 1, &histSize, &histRange, uniform, accumulate );
-
-
-    //// Draw the histograms for B, G and R
-    int hist_w = 512; int hist_h = 400;
-    int bin_w = cvRound( (double) hist_w/histSize );
-
-    cv::Mat histImage( hist_h, hist_w, CV_8UC3, cv::Scalar( 0,0,0) );
-
-    //// Normalize the result to [ 0, histImage.rows ]
-    cv::normalize(b_hist, b_hist, 0, histImage.rows, cv::NORM_MINMAX, -1, cv::Mat() );
-    cv::normalize(g_hist, g_hist, 0, histImage.rows, cv::NORM_MINMAX, -1, cv::Mat() );
-    cv::normalize(r_hist, r_hist, 0, histImage.rows, cv::NORM_MINMAX, -1, cv::Mat() );
-
-    //// Draw for each channel
-    for( int i = 1; i < histSize; i++ ) {
-        cv::line( histImage, cv::Point( bin_w*(i-1), hist_h - cvRound(b_hist.at<float>(i-1)) ) ,
-                         cv::Point( bin_w*(i), hist_h - cvRound(b_hist.at<float>(i)) ),
-                         cv::Scalar( 255, 0, 0), 2, 8, 0  );
-        cv::line( histImage, cv::Point( bin_w*(i-1), hist_h - cvRound(g_hist.at<float>(i-1)) ) ,
-                         cv::Point( bin_w*(i), hist_h - cvRound(g_hist.at<float>(i)) ),
-                         cv::Scalar( 0, 255, 0), 2, 8, 0  );
-        cv::line( histImage, cv::Point( bin_w*(i-1), hist_h - cvRound(r_hist.at<float>(i-1)) ) ,
-                         cv::Point( bin_w*(i), hist_h - cvRound(r_hist.at<float>(i)) ),
-                         cv::Scalar( 0, 0, 255), 2, 8, 0  );
-    }
-
-    cvMatToQImage(&histImage, &argbImage);
-    creerFenetre(QPixmap::fromImage(argbImage), titre);
-}
-
-
 MainWindow::MainWindow (QWidget* parent) : QMainWindow (parent), ui (new Ui::MainWindow) {
     ui->setupUi(this);
     //QLayout* layout = new QHBoxLayout;
@@ -148,11 +82,6 @@ MainWindow::MainWindow (QWidget* parent) : QMainWindow (parent), ui (new Ui::Mai
     //ouvrirImage("../TCIMAG_ressources/lena.tiff");
 
     ui->actionAffichage->setEnabled(true);
-
-    /*QPixmap pixmap = imageToQPixmap("../TCIMAG_ressources/Histogram_Calculation_Original_Image.jpg", QImage::Format_RGB888);
-    creerFenetre(pixmap, QDir(QString ("../TCIMAG_ressources/Histogram_Calculation_Original_Image.jpg")).absolutePath());
-    QImage argbImage = pixmap.toImage();
-    calculerHistogramme(argbImage, QString("Histogramme pour : ") + QDir(QString ("../TCIMAG_ressources/Histogram_Calculation_Original_Image.jpg")).absolutePath());*/
 }
 
 MainWindow::~MainWindow () {
@@ -195,35 +124,46 @@ bool MainWindow::eventFilter (QObject* watched, QEvent* e) {
 const cv::Mat MainWindow::qtRGBToCvBGR (const QImage& argbImage, enum QImage::Format format = QImage::Format_RGB888) {
     //if (argbImage.isNull())
         return cv::Mat();
-    QImage rgbImage = argbImage.convertToFormat(format, Qt::ColorOnly);
+    /*QImage rgbImage = argbImage.convertToFormat(format, Qt::ColorOnly);
     ////cv::Mat (int _rows, int _cols, int _type, void* _data, size_t _step=AUTO_STEP);
     cv::Mat matRGB(rgbImage.width(), rgbImage.height(), CV_8UC3, rgbImage.bits(), rgbImage.bytesPerLine());
     cv::Mat* matBGR = new cv::Mat(matRGB);
     cv::cvtColor(matRGB, *matBGR, CV_RGB2BGR);
-    return *matBGR;
+    return *matBGR;*/
 }
 
 const QImage MainWindow::cvBGRToQtRGB (const cv::Mat& bgrImage, enum QImage::Format format = QImage::Format_RGB888) {
     //if (!bgrImage.data)
         return QImage();
-    cv::Mat* matRGB = new cv::Mat(bgrImage);
+    /*cv::Mat* matRGB = new cv::Mat(bgrImage);
     cv::cvtColor(bgrImage, *matRGB, CV_BGR2RGB);
     ////QImage::QImage ( const uchar * data, int width, int height, int bytesPerLine, Format format )
     QImage rgbImg = QImage((uchar*)matRGB->data, matRGB->cols, matRGB->rows, matRGB->step, format);
-    return rgbImg;
+    return rgbImg;*/
 }
 
-const QPixmap MainWindow::imageToQPixmap (const char* nomFichier, enum QImage::Format format = QImage::Format_RGB888) {
+void QImageTocvMat(QImage* in, cv::Mat* out) {
+    *in = in->convertToFormat(QImage::Format_RGB888, Qt::ColorOnly);
+    ////cv::Mat (int _rows, int _cols, int _type, void* _data, size_t _step=AUTO_STEP);
+    cv::Mat matRGB(in->width(), in->height(), CV_8UC3, in->bits(), in->bytesPerLine());
+    cv::cvtColor(matRGB, *out, CV_RGB2BGR);
+}
+
+void cvMatToQImage(cv::Mat* in, QImage* out) {
+    cv::cvtColor(*in, *in, CV_BGR2RGB);
+    ////QImage::QImage ( const uchar * data, int width, int height, int bytesPerLine, Format format )
+    *out = QImage((uchar*)in->data, in->cols, in->rows, in->step, QImage::Format_RGB888);
+}
+
+const QPixmap MainWindow::imageToQPixmap (const char* nomFichier) {
     cv::Mat loadImg;
     loadImg = cv::imread(nomFichier, CV_LOAD_IMAGE_COLOR);
     if (!loadImg.data) {
         std::cerr << "echec chargement image depuis fichier: " << nomFichier << std::endl;
         return QPixmap();
     }
-    cv::Mat matRGB;
-    cv::cvtColor(loadImg, matRGB, CV_BGR2RGB);
-    ////QImage::QImage ( const uchar * data, int width, int height, int bytesPerLine, Format format )
-    QImage rgbImg = QImage((uchar*)matRGB.data, matRGB.cols, matRGB.rows, matRGB.step, format);
+    QImage rgbImg;
+    cvMatToQImage(&loadImg, &rgbImg);
     return QPixmap::fromImage(rgbImg);
 }
 
@@ -304,19 +244,6 @@ void MainWindow::updateZoomActions (QLabel* image) {
     ui->actionZoomOut->setEnabled(scaleFactor > 0.333);
 }
 
-template<class T>
-QObject* MainWindow::findFirstChildClassOf(const QList<QObject*> &children) {
-    QObject* child = NULL;
-    for (int i = 0; i < children.size(); i++) {
-        if (typeid(*children.at(i)) == typeid(T)) {
-            child = children.at(i);
-            break;
-        } else
-            child = NULL;
-    }
-    return child;
-}
-
 QScrollArea* MainWindow::getFocusedArea() {
     ////
     ////MainWindow -> centralWidget:QMdiArea -> QWidget -> QMdiSubWindow[] -> QScrollArea <hasFocus> -> QWidget <hasFocus> -> QLabel
@@ -343,6 +270,76 @@ QScrollArea* MainWindow::getFocusedArea() {
     return NULL;
 }
 
+template<class T>
+QObject* MainWindow::findFirstChildClassOf(const QList<QObject*> &children) {
+    QObject* child = NULL;
+    for (int i = 0; i < children.size(); i++) {
+        if (typeid(*children.at(i)) == typeid(T)) {
+            child = children.at(i);
+            break;
+        } else
+            child = NULL;
+    }
+    return child;
+}
+
+void MainWindow::afficherHistogramme (QLabel* label) {
+    QImage image = label->pixmap()->toImage();
+    QString titre = QString("Histogramme pour : ") + windowTitle[qHash(label)];
+    calculerHistogramme(image, titre);
+}
+
+void MainWindow::calculerHistogramme(QImage argbImage, QString titre) {
+    cv::Mat bgrMat;
+    QImageTocvMat(&argbImage, &bgrMat);
+
+    std::vector<cv::Mat> bgr_planes;
+    split (bgrMat, bgr_planes);
+
+    //// Establish the number of bins
+    int histSize = 256;
+
+    //// Set the ranges ( for B,G,R) )
+    float range[] = { 0, 256 } ;
+    const float* histRange = { range };
+
+    bool uniform = true; bool accumulate = false;
+
+    cv::Mat b_hist, g_hist, r_hist;
+
+    //// Compute the histograms:
+    cv::calcHist( &bgr_planes[0], 1, 0, cv::Mat(), b_hist, 1, &histSize, &histRange, uniform, accumulate );
+    cv::calcHist( &bgr_planes[1], 1, 0, cv::Mat(), g_hist, 1, &histSize, &histRange, uniform, accumulate );
+    cv::calcHist( &bgr_planes[2], 1, 0, cv::Mat(), r_hist, 1, &histSize, &histRange, uniform, accumulate );
+
+
+    //// Draw the histograms for B, G and R
+    int hist_w = 512; int hist_h = 400;
+    int bin_w = cvRound( (double) hist_w/histSize );
+
+    cv::Mat histImage( hist_h, hist_w, CV_8UC3, cv::Scalar( 0,0,0) );
+
+    //// Normalize the result to [ 0, histImage.rows ]
+    cv::normalize(b_hist, b_hist, 0, histImage.rows, cv::NORM_MINMAX, -1, cv::Mat() );
+    cv::normalize(g_hist, g_hist, 0, histImage.rows, cv::NORM_MINMAX, -1, cv::Mat() );
+    cv::normalize(r_hist, r_hist, 0, histImage.rows, cv::NORM_MINMAX, -1, cv::Mat() );
+
+    //// Draw for each channel
+    for( int i = 1; i < histSize; i++ ) {
+        cv::line( histImage, cv::Point( bin_w*(i-1), hist_h - cvRound(b_hist.at<float>(i-1)) ) ,
+                         cv::Point( bin_w*(i), hist_h - cvRound(b_hist.at<float>(i)) ),
+                         cv::Scalar( 255, 0, 0), 2, 8, 0  );
+        cv::line( histImage, cv::Point( bin_w*(i-1), hist_h - cvRound(g_hist.at<float>(i-1)) ) ,
+                         cv::Point( bin_w*(i), hist_h - cvRound(g_hist.at<float>(i)) ),
+                         cv::Scalar( 0, 255, 0), 2, 8, 0  );
+        cv::line( histImage, cv::Point( bin_w*(i-1), hist_h - cvRound(r_hist.at<float>(i-1)) ) ,
+                         cv::Point( bin_w*(i), hist_h - cvRound(r_hist.at<float>(i)) ),
+                         cv::Scalar( 0, 0, 255), 2, 8, 0  );
+    }
+
+    cvMatToQImage(&histImage, &argbImage);
+    creerFenetre(QPixmap::fromImage(argbImage), titre);
+}
 
 
 
@@ -405,9 +402,6 @@ void MainWindow::on_actionAffichage_triggered () {
     QScrollArea* scrollArea = getFocusedArea();
     if (scrollArea == NULL)
         return;
-    QLabel* label = (QLabel*) scrollArea->children().first()->children().first();
-    QImage image = label->pixmap()->toImage();
-    QString titre = QString("Histogramme pour : ") + windowTitle[qHash(label)];
-    calculerHistogramme(image, titre);
+    afficherHistogramme ((QLabel*) scrollArea->children().first()->children().first());
 }
 
