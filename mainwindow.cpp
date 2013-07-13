@@ -68,39 +68,30 @@ const char* MainWindow::PATTERN_OUVERTURE_IMAGES_QT_ET_OPENCV = "Images Windows 
                                                          "Tout Type (*.*)";
 const char* MainWindow::DOSSIER_DEFAUT_OUVERTURE_IMAGES = "./../TCIMAG_ressources";
 
-
-
-MainWindow::MainWindow (QWidget* parent) : QMainWindow (parent), ui (new Ui::MainWindow)
-{
-    ui->setupUi(this);
-    //QLayout* layout = new QHBoxLayout;
-    //this->centralWidget()->setLayout(layout);
-
-    //ouvrirImage("../TCIMAG_ressources/lena.bmp");
-    //ouvrirImage("../TCIMAG_ressources/lena.jpg");
-    //ouvrirImage("../TCIMAG_ressources/lena.jpeg");
-    //ouvrirImage("../TCIMAG_ressources/lena.png");
-    //ouvrirImage("../TCIMAG_ressources/lena.pgm");
-    //ouvrirImage("../TCIMAG_ressources/lena.ppm");
-    //ouvrirImage("../TCIMAG_ressources/lena.tiff");
-    //QPixmap pixmap = imageToQPixmap("../TCIMAG_ressources/lena.bmp", QImage::Format_RGB888);
-    QPixmap pixmap = imageToQPixmap("../TCIMAG_ressources/Histogram_Calculation_Original_Image.jpg", QImage::Format_RGB888);
-    creerFenetre(pixmap, "test");
-
-    QImage argbImage = pixmap.toImage();
-    QImage rgbImage = argbImage.convertToFormat(QImage::Format_RGB888, Qt::ColorOnly);
+void QImageTocvMat(QImage* in, cv::Mat* out) {
+    *in = in->convertToFormat(QImage::Format_RGB888, Qt::ColorOnly);
     ////cv::Mat (int _rows, int _cols, int _type, void* _data, size_t _step=AUTO_STEP);
-    cv::Mat matRGB(rgbImage.width(), rgbImage.height(), CV_8UC3, rgbImage.bits(), rgbImage.bytesPerLine());
-    cv::Mat matBGR;
-    cv::cvtColor(matRGB, matBGR, CV_RGB2BGR);
+    cv::Mat matRGB(in->width(), in->height(), CV_8UC3, in->bits(), in->bytesPerLine());
+    cv::cvtColor(matRGB, *out, CV_RGB2BGR);
+}
+
+void cvMatToQImage(cv::Mat* in, QImage* out) {
+    cv::cvtColor(*in, *in, CV_BGR2RGB);
+    ////QImage::QImage ( const uchar * data, int width, int height, int bytesPerLine, Format format )
+    *out = QImage((uchar*)in->data, in->cols, in->rows, in->step, QImage::Format_RGB888);
+}
+
+void MainWindow::calculerHistogramme(QImage argbImage, QString titre) {
+    cv::Mat bgrMat;
+    QImageTocvMat(&argbImage, &bgrMat);
 
     std::vector<cv::Mat> bgr_planes;
-    split (matBGR, bgr_planes);
+    split (bgrMat, bgr_planes);
 
-    /// Establish the number of bins
+    //// Establish the number of bins
     int histSize = 256;
 
-    /// Set the ranges ( for B,G,R) )
+    //// Set the ranges ( for B,G,R) )
     float range[] = { 0, 256 } ;
     const float* histRange = { range };
 
@@ -108,24 +99,24 @@ MainWindow::MainWindow (QWidget* parent) : QMainWindow (parent), ui (new Ui::Mai
 
     cv::Mat b_hist, g_hist, r_hist;
 
-    /// Compute the histograms:
+    //// Compute the histograms:
     cv::calcHist( &bgr_planes[0], 1, 0, cv::Mat(), b_hist, 1, &histSize, &histRange, uniform, accumulate );
     cv::calcHist( &bgr_planes[1], 1, 0, cv::Mat(), g_hist, 1, &histSize, &histRange, uniform, accumulate );
     cv::calcHist( &bgr_planes[2], 1, 0, cv::Mat(), r_hist, 1, &histSize, &histRange, uniform, accumulate );
 
 
-    // Draw the histograms for B, G and R
+    //// Draw the histograms for B, G and R
     int hist_w = 512; int hist_h = 400;
     int bin_w = cvRound( (double) hist_w/histSize );
 
     cv::Mat histImage( hist_h, hist_w, CV_8UC3, cv::Scalar( 0,0,0) );
 
-    /// Normalize the result to [ 0, histImage.rows ]
+    //// Normalize the result to [ 0, histImage.rows ]
     cv::normalize(b_hist, b_hist, 0, histImage.rows, cv::NORM_MINMAX, -1, cv::Mat() );
     cv::normalize(g_hist, g_hist, 0, histImage.rows, cv::NORM_MINMAX, -1, cv::Mat() );
     cv::normalize(r_hist, r_hist, 0, histImage.rows, cv::NORM_MINMAX, -1, cv::Mat() );
 
-    /// Draw for each channel
+    //// Draw for each channel
     for( int i = 1; i < histSize; i++ ) {
         cv::line( histImage, cv::Point( bin_w*(i-1), hist_h - cvRound(b_hist.at<float>(i-1)) ) ,
                          cv::Point( bin_w*(i), hist_h - cvRound(b_hist.at<float>(i)) ),
@@ -138,18 +129,33 @@ MainWindow::MainWindow (QWidget* parent) : QMainWindow (parent), ui (new Ui::Mai
                          cv::Scalar( 0, 0, 255), 2, 8, 0  );
     }
 
-    cv::Mat rgbMat;
-    cv::cvtColor(histImage, rgbMat, CV_BGR2RGB);
-    ////QImage::QImage ( const uchar * data, int width, int height, int bytesPerLine, Format format )
-    QImage rgbImg = QImage((uchar*)rgbMat.data, rgbMat.cols, rgbMat.rows, rgbMat.step, QImage::Format_RGB888);
-    creerFenetre(QPixmap::fromImage(rgbImg), "test2");
-
-    /*QImage qImage = cvBGRToQtRGB(histImage, QImage::Format_RGB888);
-    creerFenetre(QPixmap::fromImage(qImage), "test2");*/
+    cvMatToQImage(&histImage, &argbImage);
+    creerFenetre(QPixmap::fromImage(argbImage), titre);
 }
 
-MainWindow::~MainWindow ()
-{
+
+MainWindow::MainWindow (QWidget* parent) : QMainWindow (parent), ui (new Ui::MainWindow) {
+    ui->setupUi(this);
+    //QLayout* layout = new QHBoxLayout;
+    //this->centralWidget()->setLayout(layout);
+
+    //ouvrirImage("../TCIMAG_ressources/lena.bmp");
+    //ouvrirImage("../TCIMAG_ressources/lena.jpg");
+    //ouvrirImage("../TCIMAG_ressources/lena.jpeg");
+    //ouvrirImage("../TCIMAG_ressources/lena.png");
+    //ouvrirImage("../TCIMAG_ressources/lena.pgm");
+    //ouvrirImage("../TCIMAG_ressources/lena.ppm");
+    //ouvrirImage("../TCIMAG_ressources/lena.tiff");
+
+    ui->actionAffichage->setEnabled(true);
+
+    /*QPixmap pixmap = imageToQPixmap("../TCIMAG_ressources/Histogram_Calculation_Original_Image.jpg", QImage::Format_RGB888);
+    creerFenetre(pixmap, QDir(QString ("../TCIMAG_ressources/Histogram_Calculation_Original_Image.jpg")).absolutePath());
+    QImage argbImage = pixmap.toImage();
+    calculerHistogramme(argbImage, QString("Histogramme pour : ") + QDir(QString ("../TCIMAG_ressources/Histogram_Calculation_Original_Image.jpg")).absolutePath());*/
+}
+
+MainWindow::~MainWindow () {
     delete ui;
 }
 
@@ -186,21 +192,19 @@ bool MainWindow::eventFilter (QObject* watched, QEvent* e) {
     return QWidget::eventFilter(watched, e);
 }
 
-const cv::Mat MainWindow::qtRGBToCvBGR (const QImage& argbImage, enum QImage::Format format = QImage::Format_RGB888){
-    if (argbImage.isNull())
+const cv::Mat MainWindow::qtRGBToCvBGR (const QImage& argbImage, enum QImage::Format format = QImage::Format_RGB888) {
+    //if (argbImage.isNull())
         return cv::Mat();
     QImage rgbImage = argbImage.convertToFormat(format, Qt::ColorOnly);
     ////cv::Mat (int _rows, int _cols, int _type, void* _data, size_t _step=AUTO_STEP);
     cv::Mat matRGB(rgbImage.width(), rgbImage.height(), CV_8UC3, rgbImage.bits(), rgbImage.bytesPerLine());
-    /*cv::Mat matBGR;
-    cv::cvtColor(matRGB, matBGR, CV_RGB2BGR);*/
     cv::Mat* matBGR = new cv::Mat(matRGB);
     cv::cvtColor(matRGB, *matBGR, CV_RGB2BGR);
     return *matBGR;
 }
 
 const QImage MainWindow::cvBGRToQtRGB (const cv::Mat& bgrImage, enum QImage::Format format = QImage::Format_RGB888) {
-    if (!bgrImage.data)
+    //if (!bgrImage.data)
         return QImage();
     cv::Mat* matRGB = new cv::Mat(bgrImage);
     cv::cvtColor(bgrImage, *matRGB, CV_BGR2RGB);
@@ -223,7 +227,7 @@ const QPixmap MainWindow::imageToQPixmap (const char* nomFichier, enum QImage::F
     return QPixmap::fromImage(rgbImg);
 }
 
-void MainWindow::ouvrirImage (const char* nomFichier){
+void MainWindow::ouvrirImage (const char* nomFichier) {
     QImage loadImg (nomFichier);
     if (loadImg.isNull()) {
         std::cerr << "echec chargement image depuis fichier: " << nomFichier << std::endl;
@@ -231,10 +235,10 @@ void MainWindow::ouvrirImage (const char* nomFichier){
     }
 
     ////OpenCV charge l'image
-    creerFenetre(imageToQPixmap(nomFichier), tr(nomFichier));
+    creerFenetre (imageToQPixmap (nomFichier), QDir (tr (nomFichier)).absolutePath());
 
-    ////Qt charge l'image
-    //creerFenetre(QPixmap::fromImage(loadImg), tr(nomFichier));
+    ////Qt charge l'imageToQPixmap()
+    //creerFenetre (QPixmap::fromImage (loadImg), QDir (tr (nomFichier)).absolutePath());
     ////todo: utiliser le path complet pour le titre?
 
     //this->centralWidget()->layout()->addWidget(subWindow);
@@ -253,6 +257,7 @@ void MainWindow::creerFenetre(const QPixmap& pixmap, const QString& titre = "") 
     labelImage->setFixedSize(pixmap.size());
     labelImage->setPixmap(pixmap);
     scaleFactor[qHash(labelImage)] = 1.0;
+    windowTitle[qHash(labelImage)] = titre;
 
     QScrollArea* scrollArea = new QScrollArea();
     scrollArea->setWidget(labelImage);
@@ -268,7 +273,7 @@ void MainWindow::creerFenetre(const QPixmap& pixmap, const QString& titre = "") 
     //this->centralWidget()->layout()->addWidget(subWindow);
 }
 
-void MainWindow::scaleImage (double factor, QScrollArea* paneau){
+void MainWindow::scaleImage (double factor, QScrollArea* paneau) {
     ////
     ////QScrollArea -> QWidget -> QLabel
     ////
@@ -287,11 +292,11 @@ void MainWindow::scaleImage (double factor, QScrollArea* paneau){
     updateZoomActions(image);
 }
 
-void MainWindow::adjustScrollBar (double factor, QScrollBar* scrollBar){
+void MainWindow::adjustScrollBar (double factor, QScrollBar* scrollBar) {
     scrollBar->setValue (int (factor * scrollBar->value () + (factor - 1) * scrollBar->pageStep () / 2));
 }
 
-void MainWindow::updateZoomActions (QLabel* image){
+void MainWindow::updateZoomActions (QLabel* image) {
     if (!this->scaleFactor.contains(qHash(image)))
         return;
     double scaleFactor = this->scaleFactor[qHash(image)];
@@ -300,7 +305,7 @@ void MainWindow::updateZoomActions (QLabel* image){
 }
 
 template<class T>
-QObject* MainWindow::findFirstChildClassOf(const QList<QObject*> &children){
+QObject* MainWindow::findFirstChildClassOf(const QList<QObject*> &children) {
     QObject* child = NULL;
     for (int i = 0; i < children.size(); i++) {
         if (typeid(*children.at(i)) == typeid(T)) {
@@ -312,7 +317,7 @@ QObject* MainWindow::findFirstChildClassOf(const QList<QObject*> &children){
     return child;
 }
 
-QScrollArea* MainWindow::getFocusedArea(){
+QScrollArea* MainWindow::getFocusedArea() {
     ////
     ////MainWindow -> centralWidget:QMdiArea -> QWidget -> QMdiSubWindow[] -> QScrollArea <hasFocus> -> QWidget <hasFocus> -> QLabel
     ////
@@ -327,7 +332,7 @@ QScrollArea* MainWindow::getFocusedArea(){
     if (children.isEmpty())
         return NULL;
     QScrollArea* scrollArea;
-    for (int i = 0; i < children.size(); i++){
+    for (int i = 0; i < children.size(); i++) {
         child = findFirstChildClassOf<QScrollArea>(children.at(i)->children());
         if (child == NULL)
             continue;
@@ -349,7 +354,7 @@ QScrollArea* MainWindow::getFocusedArea(){
 
 
 
-void MainWindow::on_actionOuvrir_triggered (){
+void MainWindow::on_actionOuvrir_triggered () {
     QFileDialog fileDialog;
     fileDialog.setFileMode(QFileDialog::ExistingFile);
     QString nomFichier = fileDialog.getOpenFileName(this, tr("Ouvrir Image"), tr(DOSSIER_DEFAUT_OUVERTURE_IMAGES), tr(PATTERN_OUVERTURE_IMAGES_QT_ET_OPENCV));
@@ -358,7 +363,7 @@ void MainWindow::on_actionOuvrir_triggered (){
     ouvrirImage(nomFichier.toStdString ().data ());
 }
 
-void MainWindow::on_actionTailleNormale_triggered (){
+void MainWindow::on_actionTailleNormale_triggered () {
     ////
     ////MainWindow -> centralWidget:QMdiArea -> QWidget -> QMdiSubWindow[] -> QScrollArea <hasFocus> -> QWidget <hasFocus> -> QLabel
     ////
@@ -370,7 +375,7 @@ void MainWindow::on_actionTailleNormale_triggered (){
 }
 
 
-void MainWindow::on_actionZoomIn_triggered (){
+void MainWindow::on_actionZoomIn_triggered () {
     ////
     ////MainWindow -> centralWidget:QMdiArea -> QWidget -> QMdiSubWindow[] -> QScrollArea <hasFocus> -> QWidget <hasFocus> -> QLabel
     ////
@@ -381,7 +386,7 @@ void MainWindow::on_actionZoomIn_triggered (){
     scaleImage(1.25, scrollArea);
 }
 
-void MainWindow::on_actionZoomOut_triggered (){
+void MainWindow::on_actionZoomOut_triggered () {
     ////
     ////MainWindow -> centralWidget:QMdiArea -> QWidget -> QMdiSubWindow[] -> QScrollArea <hasFocus> -> QWidget <hasFocus> -> QLabel
     ////
@@ -390,5 +395,19 @@ void MainWindow::on_actionZoomOut_triggered (){
     if (scrollArea == NULL)
         return;
     scaleImage(0.80, scrollArea);
+}
+
+void MainWindow::on_actionAffichage_triggered () {
+    ////
+    ////MainWindow -> centralWidget:QMdiArea -> QWidget -> QMdiSubWindow[] -> QScrollArea <hasFocus> -> QWidget <hasFocus> -> QLabel
+    ////
+    ////
+    QScrollArea* scrollArea = getFocusedArea();
+    if (scrollArea == NULL)
+        return;
+    QLabel* label = (QLabel*) scrollArea->children().first()->children().first();
+    QImage image = label->pixmap()->toImage();
+    QString titre = QString("Histogramme pour : ") + windowTitle[qHash(label)];
+    calculerHistogramme(image, titre);
 }
 

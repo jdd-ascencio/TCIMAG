@@ -67,6 +67,7 @@ public:
 private:
     Ui::MainWindow* ui;
     QHash<uint, double> scaleFactor;
+    QHash<uint, QString> windowTitle;
 
     bool eventFilter (QObject* watched, QEvent* e);
 
@@ -79,12 +80,14 @@ private:
     void adjustScrollBar (double factor, QScrollBar* scrollBar);
     void updateZoomActions (QLabel* image);
     QScrollArea* getFocusedArea ();
+    void calculerHistogramme(QImage argbImage, QString titre);
 
 private slots:
     void on_actionOuvrir_triggered ();
     void on_actionTailleNormale_triggered ();
     void on_actionZoomIn_triggered ();
     void on_actionZoomOut_triggered ();
+    void on_actionAffichage_triggered ();
 };
 
 #endif // MAINWINDOW_H
