@@ -82,6 +82,7 @@ MainWindow::MainWindow (QWidget* parent) : QMainWindow (parent), ui (new Ui::Mai
     //ouvrirImage("../TCIMAG_ressources/lena.tiff");
 
     ui->actionAffichage->setEnabled(true);
+    //ui->actionEgalisation
 }
 
 MainWindow::~MainWindow () {
@@ -123,7 +124,7 @@ bool MainWindow::eventFilter (QObject* watched, QEvent* e) {
 
 const cv::Mat MainWindow::qtRGBToCvBGR (const QImage& argbImage, enum QImage::Format format = QImage::Format_RGB888) {
     //if (argbImage.isNull())
-        return cv::Mat();
+    return cv::Mat();
     /*QImage rgbImage = argbImage.convertToFormat(format, Qt::ColorOnly);
     ////cv::Mat (int _rows, int _cols, int _type, void* _data, size_t _step=AUTO_STEP);
     cv::Mat matRGB(rgbImage.width(), rgbImage.height(), CV_8UC3, rgbImage.bits(), rgbImage.bytesPerLine());
@@ -134,7 +135,7 @@ const cv::Mat MainWindow::qtRGBToCvBGR (const QImage& argbImage, enum QImage::Fo
 
 const QImage MainWindow::cvBGRToQtRGB (const cv::Mat& bgrImage, enum QImage::Format format = QImage::Format_RGB888) {
     //if (!bgrImage.data)
-        return QImage();
+    return QImage();
     /*cv::Mat* matRGB = new cv::Mat(bgrImage);
     cv::cvtColor(bgrImage, *matRGB, CV_BGR2RGB);
     ////QImage::QImage ( const uchar * data, int width, int height, int bytesPerLine, Format format )
@@ -293,51 +294,87 @@ void MainWindow::calculerHistogramme(QImage argbImage, QString titre) {
     cv::Mat bgrMat;
     QImageTocvMat(&argbImage, &bgrMat);
 
-    std::vector<cv::Mat> bgr_planes;
-    split (bgrMat, bgr_planes);
+    if (argbImage.isGrayscale()) {
+        std::vector<cv::Mat> bgr_planes;
+        split (bgrMat, bgr_planes);
 
-    //// Establish the number of bins
-    int histSize = 256;
+        //// Establish the number of bins
+        int histSize = 256;
 
-    //// Set the ranges ( for B,G,R) )
-    float range[] = { 0, 256 } ;
-    const float* histRange = { range };
+        //// Set the ranges ( for B,G,R) )
+        float range[] = { 0, 256 } ;
+        const float* histRange = { range };
 
-    bool uniform = true; bool accumulate = false;
+        bool uniform = true; bool accumulate = false;
 
-    cv::Mat b_hist, g_hist, r_hist;
+        cv::Mat hist;
 
-    //// Compute the histograms:
-    cv::calcHist( &bgr_planes[0], 1, 0, cv::Mat(), b_hist, 1, &histSize, &histRange, uniform, accumulate );
-    cv::calcHist( &bgr_planes[1], 1, 0, cv::Mat(), g_hist, 1, &histSize, &histRange, uniform, accumulate );
-    cv::calcHist( &bgr_planes[2], 1, 0, cv::Mat(), r_hist, 1, &histSize, &histRange, uniform, accumulate );
+        //// Compute the histograms:
+        cv::calcHist( &bgr_planes[0], 1, 0, cv::Mat(), hist, 1, &histSize, &histRange, uniform, accumulate );
 
 
-    //// Draw the histograms for B, G and R
-    int hist_w = 512; int hist_h = 400;
-    int bin_w = cvRound( (double) hist_w/histSize );
+        //// Draw the histograms for B, G and R
+        int hist_w = 512; int hist_h = 400;
+        int bin_w = cvRound( (double) hist_w/histSize );
 
-    cv::Mat histImage( hist_h, hist_w, CV_8UC3, cv::Scalar( 0,0,0) );
+        cv::Mat histImage( hist_h, hist_w, CV_8UC3, cv::Scalar( 127, 127, 127) );
 
-    //// Normalize the result to [ 0, histImage.rows ]
-    cv::normalize(b_hist, b_hist, 0, histImage.rows, cv::NORM_MINMAX, -1, cv::Mat() );
-    cv::normalize(g_hist, g_hist, 0, histImage.rows, cv::NORM_MINMAX, -1, cv::Mat() );
-    cv::normalize(r_hist, r_hist, 0, histImage.rows, cv::NORM_MINMAX, -1, cv::Mat() );
+        //// Normalize the result to [ 0, histImage.rows ]
+        cv::normalize(hist, hist, 0, histImage.rows, cv::NORM_MINMAX, -1, cv::Mat() );
 
-    //// Draw for each channel
-    for( int i = 1; i < histSize; i++ ) {
-        cv::line( histImage, cv::Point( bin_w*(i-1), hist_h - cvRound(b_hist.at<float>(i-1)) ) ,
-                         cv::Point( bin_w*(i), hist_h - cvRound(b_hist.at<float>(i)) ),
-                         cv::Scalar( 255, 0, 0), 2, 8, 0  );
-        cv::line( histImage, cv::Point( bin_w*(i-1), hist_h - cvRound(g_hist.at<float>(i-1)) ) ,
-                         cv::Point( bin_w*(i), hist_h - cvRound(g_hist.at<float>(i)) ),
-                         cv::Scalar( 0, 255, 0), 2, 8, 0  );
-        cv::line( histImage, cv::Point( bin_w*(i-1), hist_h - cvRound(r_hist.at<float>(i-1)) ) ,
-                         cv::Point( bin_w*(i), hist_h - cvRound(r_hist.at<float>(i)) ),
-                         cv::Scalar( 0, 0, 255), 2, 8, 0  );
+        //// Draw for each channel
+        for( int i = 1; i < histSize; i++ ) {
+            cv::line( histImage, cv::Point( bin_w*(i-1), hist_h - cvRound(hist.at<float>(i-1)) ) ,
+                      cv::Point( bin_w*(i), hist_h - cvRound(hist.at<float>(i)) ),
+                      cv::Scalar( 0, 0, 0), 2, 8, 0  );
+        }
+        cvMatToQImage(&histImage, &argbImage);
+    } else {
+        std::vector<cv::Mat> bgr_planes;
+        split (bgrMat, bgr_planes);
+
+        //// Establish the number of bins
+        int histSize = 256;
+
+        //// Set the ranges ( for B,G,R) )
+        float range[] = { 0, 256 } ;
+        const float* histRange = { range };
+
+        bool uniform = true; bool accumulate = false;
+
+        cv::Mat b_hist, g_hist, r_hist;
+
+        //// Compute the histograms:
+        cv::calcHist( &bgr_planes[0], 1, 0, cv::Mat(), b_hist, 1, &histSize, &histRange, uniform, accumulate );
+        cv::calcHist( &bgr_planes[1], 1, 0, cv::Mat(), g_hist, 1, &histSize, &histRange, uniform, accumulate );
+        cv::calcHist( &bgr_planes[2], 1, 0, cv::Mat(), r_hist, 1, &histSize, &histRange, uniform, accumulate );
+
+
+        //// Draw the histograms for B, G and R
+        int hist_w = 512; int hist_h = 400;
+        int bin_w = cvRound( (double) hist_w/histSize );
+
+        cv::Mat histImage( hist_h, hist_w, CV_8UC3, cv::Scalar( 0, 0, 0) );
+
+        //// Normalize the result to [ 0, histImage.rows ]
+        cv::normalize(b_hist, b_hist, 0, histImage.rows, cv::NORM_MINMAX, -1, cv::Mat() );
+        cv::normalize(g_hist, g_hist, 0, histImage.rows, cv::NORM_MINMAX, -1, cv::Mat() );
+        cv::normalize(r_hist, r_hist, 0, histImage.rows, cv::NORM_MINMAX, -1, cv::Mat() );
+
+        //// Draw for each channel
+        for( int i = 1; i < histSize; i++ ) {
+            cv::line( histImage, cv::Point( bin_w*(i-1), hist_h - cvRound(b_hist.at<float>(i-1)) ) ,
+                      cv::Point( bin_w*(i), hist_h - cvRound(b_hist.at<float>(i)) ),
+                      cv::Scalar( 255, 0, 0), 2, 8, 0  );
+            cv::line( histImage, cv::Point( bin_w*(i-1), hist_h - cvRound(g_hist.at<float>(i-1)) ) ,
+                      cv::Point( bin_w*(i), hist_h - cvRound(g_hist.at<float>(i)) ),
+                      cv::Scalar( 0, 255, 0), 2, 8, 0  );
+            cv::line( histImage, cv::Point( bin_w*(i-1), hist_h - cvRound(r_hist.at<float>(i-1)) ) ,
+                      cv::Point( bin_w*(i), hist_h - cvRound(r_hist.at<float>(i)) ),
+                      cv::Scalar( 0, 0, 255), 2, 8, 0  );
+        }
+        cvMatToQImage(&histImage, &argbImage);
     }
-
-    cvMatToQImage(&histImage, &argbImage);
     creerFenetre(QPixmap::fromImage(argbImage), titre);
 }
 
