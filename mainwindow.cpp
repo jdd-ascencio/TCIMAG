@@ -323,7 +323,7 @@ void MainWindow::calculerHistogramme(QImage argbImage, QString titre) {
     int hist_w = 512; int hist_h = 512;
     int bin_w = cvRound( (double) hist_w/histSize );
 
-    cv::Mat histImage( hist_h, hist_w, CV_8UC3, !argbImage.isGrayscale() ? cv::Scalar( 0, 0, 0) : cv::Scalar( 127, 127, 127) );
+    cv::Mat histImage( hist_h, hist_w, CV_8UC3, !argbImage.isGrayscale() ? cv::Scalar::all(0) : cv::Scalar::all(191) );
 
     //// Normalize the result to [ 0, histImage.rows ]
     cv::normalize(b_hist, b_hist, 0, histImage.rows, cv::NORM_MINMAX, -1, cv::Mat() );
@@ -332,7 +332,27 @@ void MainWindow::calculerHistogramme(QImage argbImage, QString titre) {
         cv::normalize(r_hist, r_hist, 0, histImage.rows, cv::NORM_MINMAX, -1, cv::Mat() );
     }
 
+
+    std::string text;
+    int fontFace = CV_FONT_HERSHEY_DUPLEX;
+    double fontScale = 0.5;
+    int thickness = 1;
+    //// ligne de base : http://fr.wikipedia.org/wiki/Caract%C3%A8re_%28typographie%29
+    //// i.e. limite inferieur de "l'oeil" du caractere
+    int baseline=0;
+    cv::Size textSize;
+    cv::Point textOrg;
+    cv::Scalar labelAxes;
+
+
     if (!argbImage.isGrayscale()) {
+        labelAxes = cv::Scalar::all(255);
+
+
+        cv::line(histImage, cv::Point(0, cvRound(histImage.rows/3)), cv::Point(histImage.cols, cvRound(histImage.rows/3)), labelAxes);
+        cv::line(histImage, cv::Point(0, cvRound(histImage.rows*2/3)), cv::Point(histImage.cols, cvRound(histImage.rows*2/3)), labelAxes);
+
+
         //// Draw for each channel
         for( int i = 1; i < histSize; i++ ) {
             cv::line( histImage, cv::Point( bin_w*(i-1), hist_h - cvRound(b_hist.at<float>(i-1)) ) ,
@@ -345,13 +365,86 @@ void MainWindow::calculerHistogramme(QImage argbImage, QString titre) {
                       cv::Point( bin_w*(i), hist_h - cvRound(r_hist.at<float>(i)) ),
                       cv::Scalar( 0, 0, 255), 2, 8, 0  );
         }
+
+
+        text = "255";
+        baseline = 0;
+        textSize = cv::getTextSize(text, fontFace, fontScale, thickness, &baseline);
+        baseline += thickness;
+        // center the text
+        textOrg = cv::Point(histImage.cols - textSize.width,
+                      histImage.rows - textSize.height + baseline);
+        // then put the text itself
+        cv::putText(histImage, text, textOrg, fontFace, fontScale, labelAxes, thickness, 8);
+
+
+        text = "0";
+        baseline = 0;
+        textSize = cv::getTextSize(text, fontFace, fontScale, thickness, &baseline);
+        baseline += thickness;
+        // center the text
+        textOrg = cv::Point(0,
+                      histImage.rows - textSize.height + baseline);
+        // then put the text itself
+        cv::putText(histImage, text, textOrg, fontFace, fontScale, labelAxes, thickness, 8);
+
+
+        text = "255";
+        baseline = 0;
+        textSize = cv::getTextSize(text, fontFace, fontScale, thickness, &baseline);
+        baseline += thickness;
+        // center the text
+        textOrg = cv::Point(0,
+                      0 + textSize.height);
+        // then put the text itself
+        cv::putText(histImage, text, textOrg, fontFace, fontScale, labelAxes, thickness, 8);
     } else {
+        labelAxes = cv::Scalar::all(95);
+
+
+        cv::line(histImage, cv::Point(0, cvRound(histImage.rows/3)), cv::Point(histImage.cols, cvRound(histImage.rows/3)), labelAxes);
+        cv::line(histImage, cv::Point(0, cvRound(histImage.rows*2/3)), cv::Point(histImage.cols, cvRound(histImage.rows*2/3)), labelAxes);
+
+
         //// Draw the channel
         for( int i = 1; i < histSize; i++ ) {
             cv::line( histImage, cv::Point( bin_w*(i-1), hist_h - cvRound(b_hist.at<float>(i-1)) ) ,
                       cv::Point( bin_w*(i), hist_h - cvRound(b_hist.at<float>(i)) ),
-                      cv::Scalar( 0, 0, 0), 2, 8, 0  );
+                      cv::Scalar::all(31), 2, 8, 0  );
         }
+
+
+        text = "255";
+        baseline = 0;
+        textSize = cv::getTextSize(text, fontFace, fontScale, thickness, &baseline);
+        baseline += thickness;
+        // center the text
+        textOrg = cv::Point(histImage.cols - textSize.width,
+                      histImage.rows - textSize.height + baseline);
+        // then put the text itself
+        cv::putText(histImage, text, textOrg, fontFace, fontScale, labelAxes, thickness, 8);
+
+
+        text = "0";
+        baseline = 0;
+        textSize = cv::getTextSize(text, fontFace, fontScale, thickness, &baseline);
+        baseline += thickness;
+        // center the text
+        textOrg = cv::Point(0,
+                      histImage.rows - textSize.height + baseline);
+        // then put the text itself
+        cv::putText(histImage, text, textOrg, fontFace, fontScale, labelAxes, thickness, 8);
+
+
+        text = "255";
+        baseline = 0;
+        textSize = cv::getTextSize(text, fontFace, fontScale, thickness, &baseline);
+        baseline += thickness;
+        // center the text
+        textOrg = cv::Point(0,
+                      0 + textSize.height);
+        // then put the text itself
+        cv::putText(histImage, text, textOrg, fontFace, fontScale, labelAxes, thickness, 8);
     }
     cvMatToQImage(&histImage, &argbImage);
     creerFenetre(QPixmap::fromImage(argbImage), titre);
