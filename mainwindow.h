@@ -71,8 +71,8 @@ private:
 
     bool eventFilter (QObject* watched, QEvent* e);
 
-    const cv::Mat qtRGBToCvBGR (const QImage& argbImage, enum QImage::Format format);
-    const QImage cvBGRToQtRGB (const cv::Mat& bgrImage, enum QImage::Format format);
+    //const cv::Mat qtRGBToCvBGR (const QImage& argbImage, enum QImage::Format format);
+    //const QImage cvBGRToQtRGB (const cv::Mat& bgrImage, enum QImage::Format format);
     const QPixmap imageToQPixmap (const char* nomFichier);
     void ouvrirImage (const char* nomFichier);
     void creerFenetre (const QPixmap& pixmap, const QString &titre);
@@ -90,5 +90,8 @@ private slots:
     void on_actionZoomOut_triggered ();
     void on_actionAffichage_triggered ();
 };
+
+void QImageTocvMat(QImage& in, cv::Mat& out);
+void cvMatToQImage(cv::Mat& in, QImage& out);
 
 #endif // MAINWINDOW_H

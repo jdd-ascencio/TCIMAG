@@ -122,28 +122,28 @@ bool MainWindow::eventFilter (QObject* watched, QEvent* e) {
     return QWidget::eventFilter(watched, e);
 }
 
-const cv::Mat MainWindow::qtRGBToCvBGR (const QImage& argbImage, enum QImage::Format format = QImage::Format_RGB888) {
+/*const cv::Mat MainWindow::qtRGBToCvBGR (const QImage& argbImage, enum QImage::Format format = QImage::Format_RGB888) {
     //if (argbImage.isNull())
     return cv::Mat();
-    /*QImage rgbImage = argbImage.convertToFormat(format, Qt::ColorOnly);
+    / *QImage rgbImage = argbImage.convertToFormat(format, Qt::ColorOnly);
     ////cv::Mat (int _rows, int _cols, int _type, void* _data, size_t _step=AUTO_STEP);
     cv::Mat matRGB(rgbImage.width(), rgbImage.height(), CV_8UC3, rgbImage.bits(), rgbImage.bytesPerLine());
     cv::Mat* matBGR = new cv::Mat(matRGB);
     cv::cvtColor(matRGB, *matBGR, CV_RGB2BGR);
-    return *matBGR;*/
-}
+    return *matBGR;* /
+}*/
 
-const QImage MainWindow::cvBGRToQtRGB (const cv::Mat& bgrImage, enum QImage::Format format = QImage::Format_RGB888) {
+/*const QImage MainWindow::cvBGRToQtRGB (const cv::Mat& bgrImage, enum QImage::Format format = QImage::Format_RGB888) {
     //if (!bgrImage.data)
     return QImage();
-    /*cv::Mat* matRGB = new cv::Mat(bgrImage);
+    / *cv::Mat* matRGB = new cv::Mat(bgrImage);
     cv::cvtColor(bgrImage, *matRGB, CV_BGR2RGB);
     ////QImage::QImage ( const uchar * data, int width, int height, int bytesPerLine, Format format )
     QImage rgbImg = QImage((uchar*)matRGB->data, matRGB->cols, matRGB->rows, matRGB->step, format);
-    return rgbImg;*/
-}
+    return rgbImg;* /
+}*/
 
-void QImageTocvMat(QImage* in, cv::Mat* out) {
+/*void QImageTocvMat(QImage* in, cv::Mat* out) {
     *in = in->convertToFormat(QImage::Format_RGB888, Qt::ColorOnly);
     ////cv::Mat (int _rows, int _cols, int _type, void* _data, size_t _step=AUTO_STEP);
     cv::Mat matRGB(in->width(), in->height(), CV_8UC3, in->bits(), in->bytesPerLine());
@@ -154,6 +154,19 @@ void cvMatToQImage(cv::Mat* in, QImage* out) {
     cv::cvtColor(*in, *in, CV_BGR2RGB);
     ////QImage::QImage ( const uchar * data, int width, int height, int bytesPerLine, Format format )
     *out = QImage((uchar*)in->data, in->cols, in->rows, in->step, QImage::Format_RGB888);
+}*/
+
+void QImageTocvMat(QImage& in, cv::Mat& out) {
+    in = in.convertToFormat(QImage::Format_RGB888, Qt::ColorOnly);
+    ////cv::Mat (int _rows, int _cols, int _type, void* _data, size_t _step=AUTO_STEP);
+    cv::Mat matRGB(in.width(), in.height(), CV_8UC3, in.bits(), in.bytesPerLine());
+    cv::cvtColor(matRGB, out, CV_RGB2BGR);
+}
+
+void cvMatToQImage(cv::Mat& in, QImage& out) {
+    cv::cvtColor(in, in, CV_BGR2RGB);
+    ////QImage::QImage ( const uchar * data, int width, int height, int bytesPerLine, Format format )
+    out = QImage((uchar*)in.data, in.cols, in.rows, in.step, QImage::Format_RGB888);
 }
 
 const QPixmap MainWindow::imageToQPixmap (const char* nomFichier) {
@@ -164,7 +177,7 @@ const QPixmap MainWindow::imageToQPixmap (const char* nomFichier) {
         return QPixmap();
     }
     QImage rgbImg;
-    cvMatToQImage(&loadImg, &rgbImg);
+    cvMatToQImage(loadImg, rgbImg);//cvMatToQImage(&loadImg, &rgbImg);
     return QPixmap::fromImage(rgbImg);
 }
 
@@ -292,7 +305,7 @@ void MainWindow::afficherHistogramme (QLabel* label) {
 
 void MainWindow::calculerHistogramme(QImage argbImage, QString titre) {
     cv::Mat bgrMat;
-    QImageTocvMat(&argbImage, &bgrMat);
+    QImageTocvMat(argbImage, bgrMat);//QImageTocvMat(&argbImage, &bgrMat);
 
     std::vector<cv::Mat> bgr_planes;
     split (bgrMat, bgr_planes);
@@ -366,7 +379,7 @@ void MainWindow::calculerHistogramme(QImage argbImage, QString titre) {
         }
 
 
-        for(int i = 0; i < histImage.cols; i+=8)
+        for(int i = 8; i < histImage.cols; i+=16)
             cv::line(histImage, cv::Point(i, histImage.rows - 4), cv::Point(i, histImage.rows), labelAxes);
         for(int i = 0; i < histImage.cols; i+=16)
             cv::line(histImage, cv::Point(i, histImage.rows - 6), cv::Point(i, histImage.rows), labelAxes);
@@ -422,7 +435,7 @@ void MainWindow::calculerHistogramme(QImage argbImage, QString titre) {
         }
 
 
-        for(int i = 0; i < histImage.cols; i+=8)
+        for(int i = 8; i < histImage.cols; i+=16)
             cv::line(histImage, cv::Point(i, histImage.rows - 4), cv::Point(i, histImage.rows), labelAxes);
         for(int i = 0; i < histImage.cols; i+=16)
             cv::line(histImage, cv::Point(i, histImage.rows - 6), cv::Point(i, histImage.rows), labelAxes);
@@ -463,7 +476,7 @@ void MainWindow::calculerHistogramme(QImage argbImage, QString titre) {
         // then put the text itself
         cv::putText(histImage, text, textOrg, fontFace, fontScale, labelAxes, thickness, 8);
     }
-    cvMatToQImage(&histImage, &argbImage);
+    cvMatToQImage(histImage, argbImage);
     creerFenetre(QPixmap::fromImage(argbImage), titre);
 }
 
