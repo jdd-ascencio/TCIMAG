@@ -286,7 +286,7 @@
   </action>
   <action name="actionNegatif">
    <property name="enabled">
-    <bool>true</bool>
+    <bool>false</bool>
    </property>
    <property name="text">
     <string>Négatif</string>
@@ -729,7 +729,7 @@
     <bool>false</bool>
    </property>
    <property name="text">
-    <string>Seuillage  par Hystérésis</string>
+    <string>Seuillage par Hystérésis</string>
    </property>
   </action>
   <action name="actionBiseuillage">
