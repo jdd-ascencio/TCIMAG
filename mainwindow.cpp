@@ -70,8 +70,6 @@ const char* MainWindow::DOSSIER_DEFAUT_OUVERTURE_IMAGES = "./../TCIMAG_ressource
 
 MainWindow::MainWindow (QWidget* parent) : QMainWindow (parent), ui (new Ui::MainWindow) {
     ui->setupUi(this);
-    //QLayout* layout = new QHBoxLayout;
-    //this->centralWidget()->setLayout(layout);
 
     //ouvrirImage("../TCIMAG_ressources/lena.bmp");
     //ouvrirImage("../TCIMAG_ressources/lenaGray.bmp");
@@ -82,6 +80,7 @@ MainWindow::MainWindow (QWidget* parent) : QMainWindow (parent), ui (new Ui::Mai
     //ouvrirImage("../TCIMAG_ressources/lena.ppm");
     //ouvrirImage("../TCIMAG_ressources/lena.tiff");
 
+    //ouvrirImage("../TCIMAG_ressources/QUITO.PNG");
     ouvrirImage("../TCIMAG_ressources/RONDELLE.PNG");
     ouvrirImage("../TCIMAG_ressources/SPOT.PNG");
 
@@ -118,16 +117,27 @@ MainWindow::MainWindow (QWidget* parent) : QMainWindow (parent), ui (new Ui::Mai
 
     //menu outils
     ui->actionAffichage->setEnabled(true);
+    ui->actionRecadrage->setEnabled(true);
     ui->actionNegatif->setEnabled(true);
     ui->actionAddition->setEnabled(true);
     ui->actionSoustraction->setEnabled(true);
+    ui->actionCombinaison->setEnabled(true);
 
     //menu filtrage
+    ui->actionMoyenneur3x3->setEnabled(true);
+    ui->actionMoyenneurNxN->setEnabled(true);
     ui->actionLaplacien->setEnabled(true);
+    ui->actionMedian->setEnabled(true);
+    ui->actionFFT->setEnabled(true);
+
+    ui->actionMoyenneurNxN->setText(tr("Moyenneur nxn"));
+    ui->actionMoyenneurNxN->setIconText(tr("Moyenneur nxn"));
+    ui->actionMoyenneurNxN->setToolTip(tr("Moyenneur nxn"));
 
     //menu segmentation
     ui->actionManuelSimple->setEnabled(true);
     ui->actionSeuillageParHysteresis->setEnabled(true);
+    ui->actionNormeSobel->setEnabled(true);
     ui->actionGradientXSobel->setEnabled(true);
     ui->actionGradientYSobel->setEnabled(true);
 }
@@ -164,50 +174,20 @@ bool MainWindow::eventFilter (QObject* watched, QEvent* e) {
     } else if (e->type() == QEvent::FocusIn) {
         //// QScrollableArea
         updateZoomActions (getLabelInArea ((QScrollArea*) watched));
-        return QWidget::eventFilter(watched, e);
     //} else if (e->type() == QEvent::WindowDeactivate) {
     //    std::cerr << "win deact: " << typeid(*watched).name() << std::endl;
-    //    return QWidget::eventFilter(watched, e);
+    //} else if (e->type() == QEvent::Destroy) {
+    //    std::cerr << std::endl << "destroyed: " << typeid(*watched).name() << std::endl ;
     } else if (e->type() == QEvent::Close) {
-        std::cerr << "closed: " << typeid(*watched).name() << std::endl;
-        return QWidget::eventFilter(watched, e);
+        if (typeid(*watched) == typeid(QScrollArea)) {
+            //std::cerr << "closed: " << typeid(*watched).name() << std::endl;
+            getLabelInArea((QScrollArea*) watched)->deleteLater();
+            watched->deleteLater();
+            watched->parent()->deleteLater();
+        }
     }
     return QWidget::eventFilter(watched, e);
 }
-
-/*const cv::Mat MainWindow::qtRGBToCvBGR (const QImage& argbImage, enum QImage::Format format = QImage::Format_RGB888) {
-    //if (argbImage.isNull())
-    return cv::Mat();
-    / *QImage rgbImage = argbImage.convertToFormat(format, Qt::ColorOnly);
-    ////cv::Mat (int _rows, int _cols, int _type, void* _data, size_t _step=AUTO_STEP);
-    cv::Mat matRGB(rgbImage.width(), rgbImage.height(), CV_8UC3, rgbImage.bits(), rgbImage.bytesPerLine());
-    cv::Mat* matBGR = new cv::Mat(matRGB);
-    cv::cvtColor(matRGB, *matBGR, CV_RGB2BGR);
-    return *matBGR;* /
-}*/
-
-/*const QImage MainWindow::cvBGRToQtRGB (const cv::Mat& bgrImage, enum QImage::Format format = QImage::Format_RGB888) {
-    //if (!bgrImage.data)
-    return QImage();
-    / *cv::Mat* matRGB = new cv::Mat(bgrImage);
-    cv::cvtColor(bgrImage, *matRGB, CV_BGR2RGB);
-    ////QImage::QImage ( const uchar * data, int width, int height, int bytesPerLine, Format format )
-    QImage rgbImg = QImage((uchar*)matRGB->data, matRGB->cols, matRGB->rows, matRGB->step, format);
-    return rgbImg;* /
-}*/
-
-/*void QImageTocvMat(QImage* in, cv::Mat* out) {
-    *in = in->convertToFormat(QImage::Format_RGB888, Qt::ColorOnly);
-    ////cv::Mat (int _rows, int _cols, int _type, void* _data, size_t _step=AUTO_STEP);
-    cv::Mat matRGB(in->width(), in->height(), CV_8UC3, in->bits(), in->bytesPerLine());
-    cv::cvtColor(matRGB, *out, CV_RGB2BGR);
-}
-
-void cvMatToQImage(cv::Mat* in, QImage* out) {
-    cv::cvtColor(*in, *in, CV_BGR2RGB);
-    ////QImage::QImage ( const uchar * data, int width, int height, int bytesPerLine, Format format )
-    *out = QImage((uchar*)in->data, in->cols, in->rows, in->step, QImage::Format_RGB888);
-}*/
 
 void QImageTocvMat(const QImage& in, cv::Mat& out) {
     QImage img = in.convertToFormat(QImage::Format_RGB888, Qt::ColorOnly);
@@ -231,7 +211,7 @@ const QPixmap MainWindow::imageToQPixmap (const char* nomFichier) {
         return QPixmap();
     }
     QImage rgbImg;
-    cvMatToQImage(loadImg, rgbImg);//cvMatToQImage(&loadImg, &rgbImg);
+    cvMatToQImage(loadImg, rgbImg);
     return QPixmap::fromImage(rgbImg);
 }
 
@@ -252,10 +232,7 @@ void MainWindow::ouvrirImage (const char* nomFichier) {
     //creerFenetre (imageToQPixmap (nomFichier), QDir (tr (nomFichier)).tempPath());     /// /tmp
 
     ////Qt charge l'imageToQPixmap()
-    //creerFenetre (QPixmap::fromImage (loadImg), QDir (tr (nomFichier)).absolutePath());
-    ////todo: utiliser le path complet pour le titre?
-
-    //this->centralWidget()->layout()->addWidget(subWindow);
+    //creerFenetre (QPixmap::fromImage (loadImg), QDir (tr (nomFichier)).dirName());
 }
 
 void MainWindow::creerFenetre(const QPixmap& pixmap, const QString& titre = "") {
@@ -283,31 +260,26 @@ void MainWindow::creerFenetre(const QPixmap& pixmap, const QString& titre = "") 
     subWindow->setMinimumSize ((int)(pixmap.width () / 5), (int)(pixmap.height () / 5));
     subWindow->setWidget(scrollArea);
     subWindow->show();
-
-    //this->centralWidget()->layout()->addWidget(subWindow);
 }
 
-void MainWindow::scaleImage (double factor, QScrollArea* paneau) {
-    ////
-    ////QScrollArea -> QWidget -> QLabel
-    ////
-    QLabel* image = this->getLabelInArea(paneau);//(QLabel*) paneau->children().first()->children().first();
+void MainWindow::scaleImage (QScrollArea* scrollArea, double facteur) {
+    QLabel* image = this->getLabelInArea(scrollArea);
     QSize actuelle = image->pixmap()->size();
     if (!this->scaleFactor.contains(qHash(image)))
         return;
-    double scaleFactor = this->scaleFactor[qHash(image)] * factor;
+    double scaleFactor = this->scaleFactor[qHash(image)] * facteur;
     this->scaleFactor[qHash(image)] = scaleFactor;
 
     image->setFixedSize(scaleFactor * actuelle);
 
-    adjustScrollBar (scaleFactor, paneau->horizontalScrollBar());
-    adjustScrollBar (scaleFactor, paneau->verticalScrollBar());
+    adjustScrollBar (scrollArea->horizontalScrollBar(), scaleFactor);
+    adjustScrollBar (scrollArea->verticalScrollBar(), scaleFactor);
 
     updateZoomActions(image);
 }
 
-void MainWindow::adjustScrollBar (double factor, QScrollBar* scrollBar) {
-    scrollBar->setValue (int (factor * scrollBar->value () + (factor - 1) * scrollBar->pageStep () / 2));
+void MainWindow::adjustScrollBar (QScrollBar* scrollBar, double facteur) {
+    scrollBar->setValue (int (facteur * scrollBar->value () + (facteur - 1) * scrollBar->pageStep () / 2));
 }
 
 void MainWindow::updateZoomActions (QLabel* image) {
@@ -451,13 +423,13 @@ QObject* MainWindow::findFirstChildClassOf(const QList<QObject*> &children) {
 //menu outils
 void MainWindow::afficherHistogramme (QLabel* label) {
     QImage image = label->pixmap()->toImage();
-    QString titre = QString("Histogramme pour : ") + windowTitle[qHash(label)];
+    QString titre = QString("Histogramme pour: ") + windowTitle[qHash(label)];
     calculerHistogramme(image, titre);
 }
 
 void MainWindow::calculerHistogramme(QImage& argbImage, QString titre) {
     cv::Mat bgrMat;
-    QImageTocvMat(argbImage, bgrMat);//QImageTocvMat(&argbImage, &bgrMat);
+    QImageTocvMat(argbImage, bgrMat);
 
     std::vector<cv::Mat> bgr_planes;
     split (bgrMat, bgr_planes);
@@ -632,31 +604,38 @@ void MainWindow::calculerHistogramme(QImage& argbImage, QString titre) {
     creerFenetre(QPixmap::fromImage(argbImage), titre);
 }
 
+void MainWindow::afficherRecadrage (QLabel* label) {
+    QImage image = label->pixmap()->toImage();
+    QString titre = QString("Recadrage: ") + windowTitle[qHash(label)];
+    calculerRecadrage (image, titre);
+}
+
+void MainWindow::calculerRecadrage (QImage& argbImage, QString titre) {
+    cv::Mat bgrMat;
+    QImageTocvMat(argbImage, bgrMat);
+
+    if (argbImage.isGrayscale()) {
+        cv::Mat gMat;
+        cv::cvtColor (bgrMat, gMat, CV_BGR2GRAY);
+        cv::Mat result;
+        equalizeHist (gMat, result);
+        cv::cvtColor (result, bgrMat, CV_GRAY2BGR);
+    } else
+        return;
+
+    cvMatToQImage(bgrMat, argbImage);
+    creerFenetre(QPixmap::fromImage(argbImage), titre);
+}
+
 void MainWindow::afficherHistogrammeNegatif (QLabel* label) {
     QImage image = label->pixmap()->toImage();
-    QString titre = QString("! ") + windowTitle[qHash(label)];
+    QString titre = QString("Négatif: ") + windowTitle[qHash(label)];
     calculerHistogrammeNegatif(image, titre);
 }
 
 void MainWindow::calculerHistogrammeNegatif (QImage& argbImage, QString titre) {
     cv::Mat bgrMat;
-    QImageTocvMat(argbImage, bgrMat);//QImageTocvMat(&argbImage, &bgrMat);
-
-/*
-uchar lookup [256];
-for(int i=0; i<256; i++)
-  lookup[i]=255-i;
-
-cv::Mat applyLookup(const cv::Mat& image, const cv::MatND& lookup) {
-  cv::Mat result(image.rows, image.cols, CV_8U);
-  cv::Mat_<uchar>::iterator itr = result.begin<uchar>();
-  cv::Mat_<uchar>::const_iterator it = image.begin<uchar>();
-  cv::Mat_<uchar>::const_iterator itend = image.end<uchar>();
-  for(; it != itend; ++it, ++itr)
-    *itr = lookup.at<uchar>(*it);
-  return result;
-}
-*/
+    QImageTocvMat(argbImage, bgrMat);
 
     uchar lookup [256];
     for(int i = 0; i < 256; i++) lookup[i] = 255 - i;
@@ -679,65 +658,151 @@ cv::Mat applyLookup(const cv::Mat& image, const cv::MatND& lookup) {
             *itr = lookup[*it];
         bgrMat = result;*/
     }
+
     cvMatToQImage(bgrMat, argbImage);
     creerFenetre(QPixmap::fromImage(argbImage), titre);
 }
 
 void MainWindow::afficherAddition (QLabel* labelDroite, QLabel* labelGauche) {
-    QImage imageDroite = labelDroite->pixmap()->toImage();
     QImage imageGauche = labelGauche->pixmap()->toImage();
+    QImage imageDroite = labelDroite->pixmap()->toImage();
+    if (imageGauche.size() != imageDroite.size()) {
+        QString msg = tr("L'addition n'est définie que pour des images de la même taille !");
+        QErrorMessage err(this);
+        err.showMessage(msg);
+        err.exec();
+        this->statusBar()->showMessage(msg);
+        return;
+    }
     QString titre = windowTitle[qHash(labelDroite)] + QString(" + ") + windowTitle[qHash(labelGauche)];
     calculerAddition(imageDroite, imageGauche, titre);
 }
 
 void MainWindow::calculerAddition (QImage& argbImageGauche, QImage& argbImageDroite, QString titre) {
+    if (argbImageGauche.size() != argbImageDroite.size())
+        return;
     cv::Mat bgrMatG;
     QImageTocvMat(argbImageGauche, bgrMatG);
     cv::Mat bgrMatD;
     QImageTocvMat(argbImageDroite, bgrMatD);
-    /*
-     double alpha = 0.5;
-     Mat src1, src2, dst;
-     addWeighted( src1, alpha, src2, 1 - alpha, 0.0, dst);
-     */
+
     double alpha = 0.5;
     cv::Mat dst;
     cv::addWeighted (bgrMatG, alpha, bgrMatD, 1 - alpha, 0.0, dst, -1);
+
     QImage result;
     cvMatToQImage(dst, result);
     creerFenetre(QPixmap::fromImage(result), titre);
 }
 
-void MainWindow::afficherSoustraction (QLabel* labelDroite, QLabel* labelGauche) {
-    QImage imageDroite = labelDroite->pixmap()->toImage();
+void MainWindow::afficherSoustraction (QLabel* labelGauche, QLabel* labelDroite) {
     QImage imageGauche = labelGauche->pixmap()->toImage();
-    QString titre = windowTitle[qHash(labelDroite)] + QString(" - ") + windowTitle[qHash(labelGauche)];
-    calculerSoustraction(imageDroite, imageGauche, titre);
+    QImage imageDroite = labelDroite->pixmap()->toImage();
+    if (imageGauche.size() != imageDroite.size()) {
+        QString msg = tr("La soustraction n'est définie que pour des images de la même taille !");
+        QErrorMessage err(this);
+        err.showMessage(msg);
+        err.exec();
+        this->statusBar()->showMessage(msg);
+        return;
+    }
+    QString titre = windowTitle[qHash(labelGauche)] + QString(" - ") + windowTitle[qHash(labelDroite)];
+    calculerSoustraction(imageGauche, imageDroite, titre);
 }
 
 void MainWindow::calculerSoustraction (QImage& argbImageGauche, QImage& argbImageDroite, QString titre) {
+    if (argbImageGauche.size() != argbImageDroite.size())
+        return;
     cv::Mat bgrMatG;
     QImageTocvMat(argbImageGauche, bgrMatG);
     cv::Mat bgrMatD;
     QImageTocvMat(argbImageDroite, bgrMatD);
-    /*
-     double alpha = 0.5;
-     Mat src1, src2, dst;
-     addWeighted( src1, alpha, src2, 1 - alpha, 0.0, dst);
-     */
+
     double alpha = 0.5;
     cv::Mat dst;
     cv::addWeighted (bgrMatG, alpha, bgrMatD, -1 + alpha, 127, dst, -1);
+
+    QImage result;
+    cvMatToQImage(dst, result);
+    creerFenetre(QPixmap::fromImage(result), titre);
+}
+
+void MainWindow::afficherCombinaison (QLabel* labelGauche, QLabel* labelDroite) {
+    QImage imageGauche = labelGauche->pixmap()->toImage();
+    QImage imageDroite = labelDroite->pixmap()->toImage();
+    if (imageGauche.size() != imageDroite.size()) {
+        QString msg = tr("La combinaision n'est définie que pour des images de la même taille !");
+        QErrorMessage err(this);
+        err.showMessage(msg);
+        err.exec();
+        this->statusBar()->showMessage(msg);
+        return;
+    }
+    bool ok;
+    double alpha = QInputDialog::getDouble(this, tr("Combinaison"), tr("Pourcentage (entre 0 et 100): "), 50, 0, 100, 2, &ok, 0);
+    if (!ok) return;
+    this->statusBar()->showMessage(tr("Alpha = %1").arg(alpha));
+    QString titre = QString("%1%").arg(alpha) +windowTitle[qHash(labelGauche)] + QString("+%1%").arg(100-alpha) + windowTitle[qHash(labelDroite)];
+    calculerCombinaison (imageGauche, imageDroite, titre, alpha/100);
+}
+
+void MainWindow::calculerCombinaison (QImage& argbImageGauche, QImage& argbImageDroite, QString titre, double alpha) {
+    if (argbImageGauche.size() != argbImageDroite.size())
+        return;
+    cv::Mat bgrMatG;
+    QImageTocvMat(argbImageGauche, bgrMatG);
+    cv::Mat bgrMatD;
+    QImageTocvMat(argbImageDroite, bgrMatD);
+
+    cv::Mat dst;
+    cv::addWeighted (bgrMatG, alpha, bgrMatD, 1 - alpha, 0, dst, -1);
+
     QImage result;
     cvMatToQImage(dst, result);
     creerFenetre(QPixmap::fromImage(result), titre);
 }
 
 //menu filtrage
+void MainWindow::afficherMoyenneur3x3 (QLabel* label) {
+    QImage image = label->pixmap()->toImage();
+    QString titre = QString("Moyenneur 3x3: ") + windowTitle[qHash(label)];
+    calculerMoyenneur3x3  (image, titre, cv::Point(-1,-1), BORDER_TYPE);
+}
+
+void MainWindow::calculerMoyenneur3x3 (QImage& argbImage, QString titre, cv::Point anchor, int borderType) {
+    cv::Mat bgrMat;
+    QImageTocvMat(argbImage, bgrMat);
+
+    cv::blur (bgrMat, bgrMat, cv::Size(3,3), anchor, borderType);
+
+    cvMatToQImage(bgrMat, argbImage);
+    creerFenetre(QPixmap::fromImage(argbImage), titre);
+}
+
+void MainWindow::afficherMoyenneurNxN (QLabel* label) {
+    QImage image = label->pixmap()->toImage();
+    bool ok;
+    int N = QInputDialog::getInt(this, tr("Moyenneur nxn"), tr("N: "), 3, 3, 9, 2, &ok, 0);
+    if (!ok) return;
+    this->statusBar()->showMessage(tr("N = %1").arg(N));
+    QString titre = QString("Moyenneur %1x%2: ").arg(N).arg(N) + windowTitle[qHash(label)];
+    calculerMoyenneurNxN (image, titre,cv::Size (N, N), cv::Point (-1, -1), BORDER_TYPE);
+}
+
+void MainWindow::calculerMoyenneurNxN (QImage& argbImage, QString titre, cv::Size ksize, cv::Point anchor, int borderType) {
+    cv::Mat bgrMat;
+    QImageTocvMat(argbImage, bgrMat);
+
+    cv::blur (bgrMat, bgrMat, ksize, anchor, borderType);
+
+    cvMatToQImage(bgrMat, argbImage);
+    creerFenetre(QPixmap::fromImage(argbImage), titre);
+}
+
 void MainWindow::afficherLaplacien (QLabel* label) {
     QImage image = label->pixmap()->toImage();
     /*bool ok;
-    int seuil = QInputDialog::getInt(this, tr("Seuillage Simple"), tr("Seuil (entre 0 et 255): "), 127, 0, 255, 1, &ok);
+    int seuil = QInputDialog::getInt(this, tr("Seuillage Simple"), tr("Seuil (entre 0 et 255): "), 127, 0, 255, 1, &ok, 0);
     if (!ok) return;
     this->statusBar()->showMessage(tr("Seuil = %1").arg(seuil));
     QString titre = QString("Seuillage(s=%1): ").arg(seuil) + windowTitle[qHash(label)];*/
@@ -745,69 +810,122 @@ void MainWindow::afficherLaplacien (QLabel* label) {
     calculerLaplacien(image, titre, 3, 1, 0, BORDER_TYPE);
 }
 
-void MainWindow::calculerLaplacien (QImage& argbImage, QString titre, int ksize, double gain, double offset, uint borderType) {
+void MainWindow::calculerLaplacien (QImage& argbImage, QString titre, int ksize, double gain, double offset, int borderType) {
     cv::Mat bgrMat;
     QImageTocvMat(argbImage, bgrMat);
-    /*
-     *
-    incl improc
-    incl highgui
-    incl stdlib
-    incl stdio
 
-    using namespace cv
-
-    main () {
-    Mat src, src_gray, dst, abs_dst;
-    int kernel_size = 3;
-    int scale = 1;//GAIN
-    int delta = 0;//offset
-    int ddepth = CV16S;//Assez pour qu'y'ait pas de debordement pour CV_8U
-    winname
-    int c;
-    src = imread
-    !src.data
-    GaussianBlur(src, src, Size(3,3), 0, 0, BORDER_DEFAULT)
-    cvtColor(src, src_gray, CV_RGB2GRAY);
-    namedWindow winname
-    Laplacian(src_gray, dst, ddepth, kernel_size, scale,...
-    convertScaleAbs(dst, abs_dst);
-    imshow winname
-    }
-     */
     cv::GaussianBlur(bgrMat, bgrMat, cv::Size(3,3), 0, 0, borderType);
     cv::Mat gMat;
     cv::cvtColor(bgrMat, gMat, CV_BGR2GRAY);
     cv::Mat dst;
-    cv::Laplacian (gMat, dst, CV_16S, ksize, gain,offset, borderType);
+    cv::Laplacian (gMat, dst, CV_16S, ksize, gain, offset, borderType);
     cv::convertScaleAbs(dst, bgrMat);
     cv::cvtColor(bgrMat, bgrMat, CV_GRAY2BGR);
-    QImage result;
-    cvMatToQImage(bgrMat, result);
-    creerFenetre(QPixmap::fromImage(result), titre);
+
+    cvMatToQImage(bgrMat, argbImage);
+    creerFenetre(QPixmap::fromImage(argbImage), titre);
+}
+
+void MainWindow::afficherMedian (QLabel* label) {
+    QImage image = label->pixmap()->toImage();
+    bool ok;
+    int N = QInputDialog::getInt(this, tr("Filtre Médian"), tr("N: "), 3, 3, 9, 2, &ok, 0);
+    if (!ok) return;
+    this->statusBar()->showMessage(tr("Filtre Médian %1x%2").arg(N).arg(N));
+    QString titre = QString("Filtre Médian %1x%2: ").arg(N).arg(N) + windowTitle[qHash(label)];
+    calculerMedian(image, titre, N);
+}
+
+void MainWindow::calculerMedian (QImage& argbImage, QString titre, int ksize) {
+    cv::Mat bgrMat;
+    QImageTocvMat(argbImage, bgrMat);
+
+    cv::medianBlur(bgrMat, bgrMat, ksize);
+
+    cvMatToQImage(bgrMat, argbImage);
+    creerFenetre(QPixmap::fromImage(argbImage), titre);
+}
+
+void MainWindow::afficherFFT (QLabel* label) {
+    QImage image = label->pixmap()->toImage();
+    QString titre = QString("FFT: ") + windowTitle[qHash(label)];
+    calculerFFT(image, titre);
+}
+
+void MainWindow::calculerFFT (QImage& argbImage, QString titre) {
+    cv::Mat bgrMat;
+    QImageTocvMat(argbImage, bgrMat);
+
+    cv::cvtColor(bgrMat, bgrMat, CV_BGR2GRAY);
+
+    cv::Mat padded;                            //expand input image to optimal size
+    int m = cv::getOptimalDFTSize( bgrMat.rows );
+    int n = cv::getOptimalDFTSize( bgrMat.cols ); // on the border add zero values
+    cv::copyMakeBorder(bgrMat, padded, 0, m - bgrMat.rows, 0, n - bgrMat.cols, cv::BORDER_CONSTANT, cv::Scalar::all(0));
+
+    cv::Mat planes[] = {cv::Mat_<float>(padded), cv::Mat::zeros(padded.size(), CV_32F)};
+    cv::Mat complexI;
+    cv::merge(planes, 2, complexI);         // Add to the expanded another plane with zeros
+
+    cv::dft(complexI, complexI);            // this way the result may fit in the source matrix
+
+    // compute the magnitude and switch to logarithmic scale
+    // => log(1 + sqrt(Re(DFT(I))^2 + Im(DFT(I))^2))
+    cv::split(complexI, planes);                   // planes[0] = Re(DFT(I), planes[1] = Im(DFT(I))
+    cv::magnitude(planes[0], planes[1], planes[0]);// planes[0] = magnitude
+    cv::Mat magI = planes[0];
+
+    magI += cv::Scalar::all(1);                    // switch to logarithmic scale
+    cv::log(magI, magI);
+
+    // crop the spectrum, if it has an odd number of rows or columns
+    magI = magI(cv::Rect(0, 0, magI.cols & -2, magI.rows & -2));
+
+    // rearrange the quadrants of Fourier image  so that the origin is at the image center
+    int cx = magI.cols/2;
+    int cy = magI.rows/2;
+
+    cv::Mat q0(magI, cv::Rect(0, 0, cx, cy));   // Top-Left - Create a ROI per quadrant
+    cv::Mat q1(magI, cv::Rect(cx, 0, cx, cy));  // Top-Right
+    cv::Mat q2(magI, cv::Rect(0, cy, cx, cy));  // Bottom-Left
+    cv::Mat q3(magI, cv::Rect(cx, cy, cx, cy)); // Bottom-Right
+
+    cv::Mat tmp;                           // swap quadrants (Top-Left with Bottom-Right)
+    q0.copyTo(tmp);
+    q3.copyTo(q0);
+    tmp.copyTo(q3);
+
+    q1.copyTo(tmp);                    // swap quadrant (Top-Right with Bottom-Left)
+    q2.copyTo(q1);
+    tmp.copyTo(q2);
+
+    cv::normalize(magI, magI, 0, 1, CV_MINMAX); // Transform the matrix with float values into a
+                                            // viewable image form (float between values 0 and 1).
+
+    cv::imshow("FFT", magI);
+    cv::cvtColor(magI, bgrMat, CV_GRAY2BGR);
+
+    cvMatToQImage (bgrMat, argbImage);
+    creerFenetre (QPixmap::fromImage (argbImage), titre);
 }
 
 //menu segmentation
 void MainWindow::afficherSeuillageManuelSimple (QLabel* label) {
     QImage image = label->pixmap()->toImage();
     bool ok;
-    int seuil = QInputDialog::getInt(this, tr("Seuillage Simple"), tr("Seuil (entre 0 et 255): "), 127, 0, 255, 1, &ok);
+    int seuil = QInputDialog::getInt(this, tr("Seuillage Simple"), tr("Seuil (entre 0 et 255): "), 127, 0, 255, 1, &ok, 0);
     if (!ok) return;
     this->statusBar()->showMessage(tr("Seuil = %1").arg(seuil));
-    QString titre = QString("Seuillage(s=%1): ").arg(seuil) + windowTitle[qHash(label)];
+    QString titre = QString("Seuillage(%1): ").arg(seuil) + windowTitle[qHash(label)];
     calculerSeuillageManuelSimple (image, titre, seuil, 255);
 }
 
 void MainWindow::calculerSeuillageManuelSimple (QImage& argbImage, QString titre, double seuil, double maxval) {
     cv::Mat bgrMat;
     QImageTocvMat(argbImage, bgrMat);
-/*
- *seuillage :
-cv::Mat thresholded;
-cv::threshold(image, thresholded, 60, 255, cv::THRESH_BINARY);
-cv::imwrite ("binary.bmp", thresholded);
-*/
+
     cv::threshold(bgrMat, bgrMat, seuil, maxval, cv::THRESH_BINARY);
+
     cvMatToQImage(bgrMat, argbImage);
     creerFenetre(QPixmap::fromImage(argbImage), titre);
 }
@@ -823,15 +941,15 @@ void MainWindow::afficherSeuillageManuelDouble (QLabel* label) {
      *int 	getInt ( QWidget * parent, const QString & title, const QString & label, int value = 0, int min = -2147483647, int max = 2147483647, int step = 1, bool * ok = 0, Qt::WindowFlags flags = 0 )
      bool ok;
      int i = QInputDialog::getInt(this, tr("QInputDialog::getInteger()"),
-                                  tr("Percentage:"), 25, 0, 100, 1, &ok);
+                                  tr("Percentage:"), 25, 0, 100, 1, &ok, 0);
      if (ok)
          integerLabel->setText(tr("%1%").arg(i));
      */
     bool ok;
-    int seuil = QInputDialog::getInt(this, tr("Seuillage Double"), tr("Seuil (entre 0 et 255): "), 127, 0, 255, 1, &ok);
+    int seuil = QInputDialog::getInt(this, tr("Seuillage Double"), tr("Seuil (entre 0 et 255): "), 127, 0, 255, 1, &ok, 0);
     if (!ok) return;
     this->statusBar()->showMessage(tr("Seuil = %1").arg(seuil));
-    QString titre = QString("Seuillage(s=%1): ").arg(seuil) + windowTitle[qHash(label)];
+    QString titre = QString("Seuillage(%1): ").arg(seuil) + windowTitle[qHash(label)];
     calculerSeuillageManuelDouble(image, titre, seuil, 255);
 }
 
@@ -888,7 +1006,7 @@ cv::imwrite ("binary.bmp", thresholded);
 void MainWindow::afficherSeuillageParHysteresis (QLabel* label) {
     QImage image = label->pixmap()->toImage();
     /*bool ok;
-    int seuil = QInputDialog::getInt(this, tr("Seuillage Simple"), tr("Seuil (entre 0 et 255): "), 127, 0, 255, 1, &ok);
+    int seuil = QInputDialog::getInt(this, tr("Seuillage Simple"), tr("Seuil (entre 0 et 255): "), 127, 0, 255, 1, &ok, 0);
     if (!ok) return;
     this->statusBar()->showMessage(tr("Seuil = %1").arg(seuil));*/
     QString titre = QString("Seuillage par Hystérésis: ") + windowTitle[qHash(label)];
@@ -898,38 +1016,7 @@ void MainWindow::afficherSeuillageParHysteresis (QLabel* label) {
 void MainWindow::calculerSeuillageParHysteresis (QImage& argbImage, QString titre, int seuilBas, int seuilHaut, int ksize, bool utiliserNormeL2) {
     cv::Mat bgrMat;
     QImageTocvMat(argbImage, bgrMat);
-    /*
-  /// Load an image
-  src = imread( argv[1] );
 
-  if( !src.data )
-    { return -1; }
-
-  /// Create a matrix of the same type and size as src (for dst)
-  dst.create( src.size(), src.type() );
-
-  /// Convert the image to grayscale
-  cvtColor( src, src_gray, COLOR_BGR2GRAY );
-
-  /// Create a window
-  namedWindow( window_name, WINDOW_AUTOSIZE );
-
-  /// Create a Trackbar for user to enter threshold
-  createTrackbar( "Min Threshold:", window_name, &lowThreshold, max_lowThreshold, CannyThreshold );
-
-  /// Show the image
-  CannyThreshold(0, 0);
-    /// Reduce noise with a kernel 3x3
-    blur( src_gray, detected_edges, Size(3,3) );
-
-    /// Canny detector
-    Canny( detected_edges, detected_edges, lowThreshold, lowThreshold*ratio, kernel_size );
-
-    /// Using Canny's output as a mask, we display our result
-    dst = Scalar::all(0);
-
-    src.copyTo( dst, detected_edges);
-     */
     cv::Mat gMat;
     cv::cvtColor (bgrMat, gMat, CV_BGR2GRAY);
     cv::blur (gMat, gMat, cv::Size(3,3), cv::Point(-1,-1), BORDER_TYPE);
@@ -938,24 +1025,23 @@ void MainWindow::calculerSeuillageParHysteresis (QImage& argbImage, QString titr
     cv::Canny (gMat, edges, seuilBas, seuilHaut, ksize, utiliserNormeL2);
     cv::Mat dst (bgrMat.size(), bgrMat.type(), cv::Scalar::all(0));
     bgrMat.copyTo (dst, edges);
-    //faire la somme des arcs et l'image de depart
-    QImage result;
-    cvMatToQImage(dst, result);
-    creerFenetre(QPixmap::fromImage(result), titre);
+
+    cvMatToQImage(dst, argbImage);
+    creerFenetre(QPixmap::fromImage(argbImage), titre);
 }
 
 void MainWindow::afficherGradientSobel (QLabel* label, TypeSobel type) {
     QImage image = label->pixmap()->toImage();
     /*bool ok;
-    int seuil = QInputDialog::getInt(this, tr("Seuillage Simple"), tr("Seuil (entre 0 et 255): "), 127, 0, 255, 1, &ok);
+    int seuil = QInputDialog::getInt(this, tr("Seuillage Simple"), tr("Seuil (entre 0 et 255): "), 127, 0, 255, 1, &ok, 0);
     if (!ok) return;
     this->statusBar()->showMessage(tr("Seuil = %1").arg(seuil));
-    QString titre = QString("Seuillage(s=%1): ").arg(seuil) + windowTitle[qHash(label)];*/
-    QString titre = QString("Sobel Gradient %1: ").arg( type == SOBEL_X ? "X" : type == SOBEL_Y ? "Y" : "") + windowTitle[qHash(label)];
+    QString titre = QString("Seuillage(%1): ").arg(seuil) + windowTitle[qHash(label)];*/
+    QString titre = QString("Sobel Gradient %1: ").arg(type == SOBEL_NORME ? "(Norme)" : type == SOBEL_X ? "X" : type == SOBEL_Y ? "Y" : "") + windowTitle[qHash(label)];
     calculerGradientSobel (image, titre, type, 3, 1, 0, BORDER_TYPE);
 }
 
-void MainWindow::calculerGradientSobel (QImage& argbImage, QString titre, TypeSobel type, int ksize, double gain, double offset, uint borderType) {
+void MainWindow::calculerGradientSobel (QImage& argbImage, QString titre, TypeSobel type, int ksize, double gain, double offset, int borderType) {
     cv::Mat bgrMat;
     QImageTocvMat(argbImage, bgrMat);
     /*
@@ -1018,10 +1104,26 @@ void MainWindow::calculerGradientSobel (QImage& argbImage, QString titre, TypeSo
         cv::Sobel (gMat, dst, CV_16S, dx, dy, ksize, gain, offset, borderType);
         cv::convertScaleAbs(dst, bgrMat);
         cv::cvtColor(bgrMat, bgrMat, CV_GRAY2BGR);
+    } else if (type == SOBEL_NORME) {
+        cv::GaussianBlur(bgrMat, bgrMat, cv::Size(3,3), 0, 0, borderType);
+        cv::Mat gMat;
+        cv::cvtColor(bgrMat, gMat, CV_BGR2GRAY);
+        cv::Mat dst_x, dst_y, abs_dst_x, abs_dst_y, dst_total;
+        //DX
+        dx = 1;
+        dy = 0;
+        cv::Sobel (gMat, dst_x, CV_16S, dx, dy, ksize, gain, offset, borderType);
+        cv::convertScaleAbs(dst_x, abs_dst_x);
+        //DY
+        dx = 0;
+        dy = 1;
+        cv::Sobel (gMat, dst_y, CV_16S, dx, dy, ksize, gain, offset, borderType);
+        cv::convertScaleAbs(dst_y, abs_dst_y);
+        cv::addWeighted (abs_dst_x, 0.5, abs_dst_y, 0.5, 0, dst_total);
+        cv::cvtColor(dst_total, bgrMat, CV_GRAY2BGR);
     }
-    QImage result;
-    cvMatToQImage(bgrMat, result);
-    creerFenetre(QPixmap::fromImage(result), titre);
+    cvMatToQImage(bgrMat, argbImage);
+    creerFenetre(QPixmap::fromImage(argbImage), titre);
 }
 
 
@@ -1044,56 +1146,43 @@ void MainWindow::on_actionOuvrir_triggered () {
 }
 
 void MainWindow::on_actionTailleNormale_triggered () {
-    ////
-    ////MainWindow -> centralWidget:QMdiArea -> QWidget -> QMdiSubWindow[] -> QScrollArea <hasFocus> -> QWidget <hasFocus> -> QLabel
-    ////
-    ////
     QScrollArea* scrollArea = getFocusedArea();
     if (scrollArea == NULL)
         return;
-    scaleImage(1/scaleFactor[qHash(getFocusedLabel())], scrollArea);
+    scaleImage(scrollArea, 1/scaleFactor[qHash(getLabelInArea(scrollArea))]);
 }
 
 
 void MainWindow::on_actionZoomIn_triggered () {
-    ////
-    ////MainWindow -> centralWidget:QMdiArea -> QWidget -> QMdiSubWindow[] -> QScrollArea <hasFocus> -> QWidget <hasFocus> -> QLabel
-    ////
-    ////
     QScrollArea* scrollArea = getFocusedArea();
     if (scrollArea == NULL)
         return;
-    scaleImage(1.25, scrollArea);
+    scaleImage(scrollArea, 1.25);
 }
 
 void MainWindow::on_actionZoomOut_triggered () {
-    ////
-    ////MainWindow -> centralWidget:QMdiArea -> QWidget -> QMdiSubWindow[] -> QScrollArea <hasFocus> -> QWidget <hasFocus> -> QLabel
-    ////
-    ////
     QScrollArea* scrollArea = getFocusedArea();
     if (scrollArea == NULL)
         return;
-    scaleImage(0.80, scrollArea);
+    scaleImage(scrollArea, 0.80);
 }
 
 //menu outils
 void MainWindow::on_actionAffichage_triggered () {
-    ////
-    ////MainWindow -> centralWidget:QMdiArea -> QWidget -> QMdiSubWindow[] -> QScrollArea <hasFocus> -> QWidget <hasFocus> -> QLabel
-    ////
-    ////
     QLabel* label = getFocusedLabel();
     if (label == NULL)
         return;
     afficherHistogramme (label);
 }
 
+void MainWindow::on_actionRecadrage_triggered () {
+    QLabel* label = getFocusedLabel();
+    if (label == NULL)
+        return;
+    afficherRecadrage(label);
+}
+
 void MainWindow::on_actionNegatif_triggered () {
-    ////
-    ////MainWindow -> centralWidget:QMdiArea -> QWidget -> QMdiSubWindow[] -> QScrollArea <hasFocus> -> QWidget <hasFocus> -> QLabel
-    ////
-    ////
     QLabel* label = getFocusedLabel();
     if (label == NULL)
         return;
@@ -1101,10 +1190,6 @@ void MainWindow::on_actionNegatif_triggered () {
 }
 
 void MainWindow::on_actionAddition_triggered () {
-    ////
-    ////MainWindow -> centralWidget:QMdiArea -> QWidget -> QMdiSubWindow[] -> QScrollArea <hasFocus> -> QWidget <hasFocus> -> QLabel
-    ////
-    ////
     QLabel* labelGauche = getFocusedLabel();
     if (labelGauche == NULL)
         return;
@@ -1124,24 +1209,54 @@ void MainWindow::on_actionSoustraction_triggered () {
     afficherSoustraction (labelGauche, labelDroite);
 }
 
+void MainWindow::on_actionCombinaison_triggered () {
+    QLabel* labelGauche = getFocusedLabel();
+    if (labelGauche == NULL)
+        return;
+    QLabel* labelDroite = getFirstUnfocusedLabel();
+    if (labelDroite == NULL)
+        return;
+    afficherCombinaison (labelGauche, labelDroite);
+}
+
 //menu filtrage
+void MainWindow::on_actionMoyenneur3x3_triggered () {
+    QLabel* label = getFocusedLabel();
+    if (label == NULL)
+        return;
+    afficherMoyenneur3x3 (label);
+}
+
+void MainWindow::on_actionMoyenneurNxN_triggered () {
+    QLabel* label = getFocusedLabel();
+    if (label == NULL)
+        return;
+    afficherMoyenneurNxN (label);
+}
+
 void MainWindow::on_actionLaplacien_triggered () {
-    ////
-    ////MainWindow -> centralWidget:QMdiArea -> QWidget -> QMdiSubWindow[] -> QScrollArea <hasFocus> -> QWidget <hasFocus> -> QLabel
-    ////
-    ////
     QLabel* label = getFocusedLabel();
     if (label == NULL)
         return;
     afficherLaplacien (label);
 }
 
+void MainWindow::on_actionMedian_triggered () {
+    QLabel* label = getFocusedLabel();
+    if (label == NULL)
+        return;
+    afficherMedian (label);
+}
+
+void MainWindow::on_actionFFT_triggered () {
+    QLabel* label = getFocusedLabel();
+    if (label == NULL)
+        return;
+    afficherFFT (label);
+}
+
 //menu segmentation
 void MainWindow::on_actionManuelSimple_triggered () {
-    ////
-    ////MainWindow -> centralWidget:QMdiArea -> QWidget -> QMdiSubWindow[] -> QScrollArea <hasFocus> -> QWidget <hasFocus> -> QLabel
-    ////
-    ////
     QLabel* label = getFocusedLabel();
     if (label == NULL)
         return;
@@ -1149,10 +1264,6 @@ void MainWindow::on_actionManuelSimple_triggered () {
 }
 
 void MainWindow::on_actionManuelDouble_triggered () {
-    ////
-    ////MainWindow -> centralWidget:QMdiArea -> QWidget -> QMdiSubWindow[] -> QScrollArea <hasFocus> -> QWidget <hasFocus> -> QLabel
-    ////
-    ////
     QLabel* label = getFocusedLabel();
     if (label == NULL)
         return;
@@ -1160,21 +1271,20 @@ void MainWindow::on_actionManuelDouble_triggered () {
 }
 
 void MainWindow::on_actionSeuillageParHysteresis_triggered () {
-    ////
-    ////MainWindow -> centralWidget:QMdiArea -> QWidget -> QMdiSubWindow[] -> QScrollArea <hasFocus> -> QWidget <hasFocus> -> QLabel
-    ////
-    ////
     QLabel* label = getFocusedLabel();
     if (label == NULL)
         return;
     afficherSeuillageParHysteresis (label);
 }
 
+void MainWindow::on_actionNormeSobel_triggered () {
+    QLabel* label = getFocusedLabel();
+    if (label == NULL)
+        return;
+    afficherGradientSobel (label, SOBEL_NORME);
+}
+
 void MainWindow::on_actionGradientXSobel_triggered () {
-    ////
-    ////MainWindow -> centralWidget:QMdiArea -> QWidget -> QMdiSubWindow[] -> QScrollArea <hasFocus> -> QWidget <hasFocus> -> QLabel
-    ////
-    ////
     QLabel* label = getFocusedLabel();
     if (label == NULL)
         return;
@@ -1182,10 +1292,6 @@ void MainWindow::on_actionGradientXSobel_triggered () {
 }
 
 void MainWindow::on_actionGradientYSobel_triggered () {
-    ////
-    ////MainWindow -> centralWidget:QMdiArea -> QWidget -> QMdiSubWindow[] -> QScrollArea <hasFocus> -> QWidget <hasFocus> -> QLabel
-    ////
-    ////
     QLabel* label = getFocusedLabel();
     if (label == NULL)
         return;

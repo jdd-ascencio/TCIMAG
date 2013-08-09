@@ -34,6 +34,7 @@
 #include <QScrollArea>
 #include <QScrollBar>
 #include <QLabel>
+#include <QErrorMessage>
 #include <QInputDialog>
 #include <QFileDialog>
 #include <QPalette>
@@ -44,13 +45,12 @@
 #include <QRect>
 
 namespace Ui {
-class MainWindow;
+  class MainWindow;
 }
 
   enum TypeSobel {SOBEL_NORME, SOBEL_X, SOBEL_Y};
 
-class MainWindow : public QMainWindow
-{
+class MainWindow : public QMainWindow {
     Q_OBJECT
     
 public:
@@ -75,35 +75,46 @@ private:
 
     bool eventFilter (QObject* watched, QEvent* e);
 
-    //const cv::Mat qtRGBToCvBGR (const QImage& argbImage, enum QImage::Format format);
-    //const QImage cvBGRToQtRGB (const cv::Mat& bgrImage, enum QImage::Format format);
+    void ouvrirImage (const char* nomFichier);
     const QPixmap imageToQPixmap (const char* nomFichier);
     void creerFenetre (const QPixmap& pixmap, const QString& titre);
+
     QScrollArea* getFocusedArea ();
-    QScrollArea* getFirstUnfocusedArea();
-    QLabel* getFocusedLabel();
-    QLabel* getFirstUnfocusedLabel();
+    QScrollArea* getFirstUnfocusedArea ();
+    QLabel* getFocusedLabel ();
+    QLabel* getFirstUnfocusedLabel ();
     QLabel* getLabelInArea (QScrollArea* scrollArea);
 
-    void ouvrirImage (const char* nomFichier);
-
-    void scaleImage (double factor, QScrollArea* paneau);
-    void adjustScrollBar (double factor, QScrollBar* scrollBar);
+    void adjustScrollBar (QScrollBar* scrollBar, double facteur);
     void updateZoomActions (QLabel* image);
+
+    void scaleImage (QScrollArea* scrollArea, double facteur);
 
     //menu outils
     void afficherHistogramme (QLabel* label);
     void calculerHistogramme (QImage& argbImage, QString titre);
+    void afficherRecadrage (QLabel* label);
+    void calculerRecadrage (QImage& argbImage, QString titre);
     void afficherHistogrammeNegatif (QLabel* label);
     void calculerHistogrammeNegatif (QImage& argbImage, QString titre);
-    void afficherAddition (QLabel* label1, QLabel* label2);
+    void afficherAddition (QLabel* labelGauche, QLabel* labelDroite);
     void calculerAddition (QImage& argbImageGauche, QImage& argbImageDroite, QString titre);
-    void afficherSoustraction (QLabel* label1, QLabel* label2);
+    void afficherSoustraction (QLabel* labelGauche, QLabel* labelDroite);
     void calculerSoustraction (QImage& argbImageGauche, QImage& argbImageDroite, QString titre);
+    void afficherCombinaison (QLabel* labelGauche, QLabel* labelDroite);
+    void calculerCombinaison (QImage& argbImageGauche, QImage& argbImageDroite, QString titre, double alpha);
 
     //menu filtrage
+    void afficherMoyenneur3x3 (QLabel* label);
+    void calculerMoyenneur3x3 (QImage& argbImage, QString titre, cv::Point anchor = cv::Point(-1, -1), int borderType = cv::BORDER_DEFAULT);
+    void afficherMoyenneurNxN (QLabel* label);
+    void calculerMoyenneurNxN (QImage& argbImage, QString titre, cv::Size ksize = cv::Size(3,3), cv::Point anchor = cv::Point(-1, -1), int borderType = cv::BORDER_DEFAULT);
     void afficherLaplacien (QLabel* label);
-    void calculerLaplacien (QImage& argbImage, QString titre, int ksize = 3, double gain = 1, double offset = 0, uint borderType = cv::BORDER_DEFAULT);
+    void calculerLaplacien (QImage& argbImage, QString titre, int ksize = 3, double gain = 1, double offset = 0, int borderType = cv::BORDER_DEFAULT);
+    void afficherMedian (QLabel* label);
+    void calculerMedian (QImage& argbImage, QString titre, int ksize = 3);
+    void afficherFFT (QLabel* label);
+    void calculerFFT (QImage& argbImage, QString titre);
 
     //menu segmentation
     void afficherSeuillageManuelSimple (QLabel* label);
@@ -113,7 +124,7 @@ private:
     void afficherSeuillageParHysteresis (QLabel* label);
     void calculerSeuillageParHysteresis (QImage& argbImage, QString titre, int seuilBas, int seuilHaut, int ksize = 3, bool utiliserNormeL2 = false);
     void afficherGradientSobel (QLabel* label, TypeSobel type);
-    void calculerGradientSobel (QImage& argbImage, QString titre, TypeSobel, int ksize = 3, double gain = 1, double offset = 0, uint borderType = cv::BORDER_DEFAULT);
+    void calculerGradientSobel (QImage& argbImage, QString titre, TypeSobel, int ksize = 3, double gain = 1, double offset = 0, int borderType = cv::BORDER_DEFAULT);
 
 private slots:
     void on_actionOuvrir_triggered ();
@@ -124,22 +135,29 @@ private slots:
 
     //menu outils
     void on_actionAffichage_triggered ();
+    void on_actionRecadrage_triggered ();
     void on_actionNegatif_triggered ();
     void on_actionAddition_triggered ();
     void on_actionSoustraction_triggered ();
+    void on_actionCombinaison_triggered ();
 
     //menu filtrage
+    void on_actionMoyenneur3x3_triggered ();
+    void on_actionMoyenneurNxN_triggered ();
     void on_actionLaplacien_triggered ();
+    void on_actionMedian_triggered ();
+    void on_actionFFT_triggered ();
 
     //menu segmentation
     void on_actionManuelSimple_triggered ();
     void on_actionManuelDouble_triggered ();
     void on_actionSeuillageParHysteresis_triggered ();
+    void on_actionNormeSobel_triggered ();
     void on_actionGradientXSobel_triggered ();
     void on_actionGradientYSobel_triggered ();
 };
 
-void QImageTocvMat(const QImage& in, cv::Mat& out);
-void cvMatToQImage(const cv::Mat& in, QImage& out);
+void QImageTocvMat (const QImage& in, cv::Mat& out);
+void cvMatToQImage (const cv::Mat& in, QImage& out);
 
 #endif // MAINWINDOW_H
