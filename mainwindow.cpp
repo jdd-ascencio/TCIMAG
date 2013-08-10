@@ -70,6 +70,7 @@ const char* MainWindow::DOSSIER_DEFAUT_OUVERTURE_IMAGES = "./../TCIMAG_ressource
 
 MainWindow::MainWindow (QWidget* parent) : QMainWindow (parent), ui (new Ui::MainWindow) {
     ui->setupUi(this);
+    rng = cv::RNG(cv::getTickCount());
 
     //ouvrirImage("../TCIMAG_ressources/lena.bmp");
     //ouvrirImage("../TCIMAG_ressources/lenaGray.bmp");
@@ -122,6 +123,13 @@ MainWindow::MainWindow (QWidget* parent) : QMainWindow (parent), ui (new Ui::Mai
     ui->actionAddition->setEnabled(true);
     ui->actionSoustraction->setEnabled(true);
     ui->actionCombinaison->setEnabled(true);
+    ui->actionNOT->setEnabled(true);
+    ui->actionPlanBinaire->setEnabled(true);
+    ui->actionQuantification->setEnabled(true);
+    ui->actionBruitUniforme->setEnabled(true);
+    ui->actionBruitPoivreEtSel->setEnabled(true);
+    ui->actionUniforme->setEnabled(true);
+    ui->actionRampe->setEnabled(true);
 
     //menu filtrage
     ui->actionMoyenneur3x3->setEnabled(true);
@@ -192,7 +200,7 @@ bool MainWindow::eventFilter (QObject* watched, QEvent* e) {
 void QImageTocvMat(const QImage& in, cv::Mat& out) {
     QImage img = in.convertToFormat(QImage::Format_RGB888, Qt::ColorOnly);
     ////cv::Mat (int _rows, int _cols, int _type, void* _data, size_t _step=AUTO_STEP);
-    cv::Mat matRGB(img.width(), img.height(), CV_8UC3, img.bits(), img.bytesPerLine());
+    cv::Mat matRGB(img.height(), img.width(), CV_8UC3, img.bits(), img.bytesPerLine());
     cv::cvtColor(matRGB, out, CV_RGB2BGR);
 }
 
@@ -629,7 +637,7 @@ void MainWindow::calculerRecadrage (QImage& argbImage, QString titre) {
 
 void MainWindow::afficherHistogrammeNegatif (QLabel* label) {
     QImage image = label->pixmap()->toImage();
-    QString titre = QString("Négatif: ") + windowTitle[qHash(label)];
+    QString titre = QString("Histogramme Négatif: ") + windowTitle[qHash(label)];
     calculerHistogrammeNegatif(image, titre);
 }
 
@@ -638,8 +646,9 @@ void MainWindow::calculerHistogrammeNegatif (QImage& argbImage, QString titre) {
     QImageTocvMat(argbImage, bgrMat);
 
     uchar lookup [256];
-    for(int i = 0; i < 256; i++) lookup[i] = 255 - i;
-    if (argbImage.isGrayscale()) {
+    for(int i = 0; i < 256; i++)
+        lookup[i] = 255 - i;
+    /*if (argbImage.isGrayscale()) {
         cv::Mat gMat;
         cv::cvtColor(bgrMat, gMat, CV_BGR2GRAY);
         cv::Mat result (gMat.rows, gMat.cols, CV_8U);
@@ -649,14 +658,19 @@ void MainWindow::calculerHistogrammeNegatif (QImage& argbImage, QString titre) {
         for(; it != itend; ++it, ++itr)
             *itr = lookup[*it];
         cv::cvtColor(result, bgrMat, CV_GRAY2BGR);
-    } else {return;
-        /*cv::Mat result (bgrMat.rows, bgrMat.cols, CV_8UC3);
-        cv::Mat_<uchar>::iterator itr = result.begin<uchar>();
-        cv::Mat_<uchar>::const_iterator it = bgrMat.begin<uchar>();
-        cv::Mat_<uchar>::const_iterator itend = bgrMat.end<uchar>();
-        for(; it != itend; ++it, ++itr)
-            *itr = lookup[*it];
-        bgrMat = result;*/
+    } else {
+        cv::MatIterator_<cv::Vec3b> it, end;
+        for( it = bgrMat.begin<cv::Vec3b>(), end = bgrMat.end<cv::Vec3b>(); it != end; ++it) {
+            (*it)[0] = lookup[(*it)[0]];
+            (*it)[1] = lookup[(*it)[1]];
+            (*it)[2] = lookup[(*it)[2]];
+        }
+    }*/
+    cv::MatIterator_<cv::Vec3b> it, end;
+    for( it = bgrMat.begin<cv::Vec3b>(), end = bgrMat.end<cv::Vec3b>(); it != end; ++it) {
+        (*it)[0] = lookup[(*it)[0]];
+        (*it)[1] = lookup[(*it)[1]];
+        (*it)[2] = lookup[(*it)[2]];
     }
 
     cvMatToQImage(bgrMat, argbImage);
@@ -762,6 +776,272 @@ void MainWindow::calculerCombinaison (QImage& argbImageGauche, QImage& argbImage
     creerFenetre(QPixmap::fromImage(result), titre);
 }
 
+void MainWindow::afficherNOT (QLabel* label) {
+    QImage image = label->pixmap()->toImage();
+    QString titre = QString("NOT: ") + windowTitle[qHash(label)];
+    calculerNOT(image, titre);
+}
+
+void MainWindow::calculerNOT (QImage& argbImage, QString titre) {
+    cv::Mat bgrMat;
+    QImageTocvMat(argbImage, bgrMat);
+
+    cv::MatIterator_<cv::Vec3b> it, end;
+    for( it = bgrMat.begin<cv::Vec3b>(), end = bgrMat.end<cv::Vec3b>(); it != end; ++it) {
+        (*it)[0] = ~(*it)[0];
+        (*it)[1] = ~(*it)[1];
+        (*it)[2] = ~(*it)[2];
+    }
+
+    cvMatToQImage(bgrMat, argbImage);
+    creerFenetre(QPixmap::fromImage(argbImage), titre);
+}
+
+void MainWindow::afficherPlanBinaire (QLabel* label) {
+    QImage image = label->pixmap()->toImage();
+    bool ok;
+    int bit = QInputDialog::getInt(this, tr("Plan Binaire"), tr("Bit (entre 1 et 8): "), 4, 1, 8, 1, &ok, 0);
+    if (!ok) return;
+    this->statusBar()->showMessage(tr("Plan Binaire(%1): ").arg(bit));
+    QString titre = QString("Plan Binaire(%1): ").arg(bit) + windowTitle[qHash(label)];
+    calculerPlanBinaire(image, titre, bit);
+}
+
+void MainWindow::calculerPlanBinaire (QImage& argbImage, QString titre, int bit) {
+    cv::Mat bgrMat;
+    QImageTocvMat(argbImage, bgrMat);
+    int masque = 255&(1<<(bit-1));
+
+    cv::MatIterator_<cv::Vec3b> it, end;
+    for( it = bgrMat.begin<cv::Vec3b>(), end = bgrMat.end<cv::Vec3b>(); it != end; ++it) {
+        (*it)[0] = (*it)[0] & masque;
+        (*it)[1] = (*it)[1] & masque;
+        (*it)[2] = (*it)[2] & masque;
+    }
+
+    cvMatToQImage(bgrMat, argbImage);
+    creerFenetre(QPixmap::fromImage(argbImage), titre);
+}
+
+void MainWindow::afficherQuantification (QLabel* label) {
+    QImage image = label->pixmap()->toImage();
+    bool ok;
+    int bits = QInputDialog::getInt(this, tr("Quantification"), tr("Bits gardés (entre 1 et 8): "), 4, 1, 8, 1, &ok, 0);
+    if (!ok) return;
+    this->statusBar()->showMessage(tr("Quantification(%1 bits): ").arg(bits));
+    QString titre = QString("Quantification(%1 bits): ").arg(bits) + windowTitle[qHash(label)];
+    calculerQuantification(image, titre, bits);
+}
+
+void MainWindow::calculerQuantification (QImage& argbImage, QString titre, int bits) {
+    cv::Mat bgrMat;
+    QImageTocvMat(argbImage, bgrMat);
+    int masque = (255>>(8-bits))<<(8-bits); //suite de '1' repetee "bits" fois (11111..0)
+
+    cv::MatIterator_<cv::Vec3b> it, end;
+    for( it = bgrMat.begin<cv::Vec3b>(), end = bgrMat.end<cv::Vec3b>(); it != end; ++it) {
+        (*it)[0] = (*it)[0] & masque;
+        (*it)[1] = (*it)[1] & masque;
+        (*it)[2] = (*it)[2] & masque;
+    }
+
+    cvMatToQImage(bgrMat, argbImage);
+    creerFenetre(QPixmap::fromImage(argbImage), titre);
+}
+
+void MainWindow::afficherBruitUniforme (QLabel* label) {
+    QImage image = label->pixmap()->toImage();
+    bool ok;
+    int valeur = QInputDialog::getInt(this, tr("Bruit Uniforme"), tr("Valeur (entre 0 et 255): "), 20, 0, 255, 1, &ok, 0);
+    if (!ok) return;
+    this->statusBar()->showMessage(tr("Bruit Uniforme(%1): ").arg(valeur));
+    QString titre = QString("Bruit Uniforme(%1): ").arg(valeur) + windowTitle[qHash(label)];
+    calculerBruitUniforme (image, titre, valeur);
+}
+
+void MainWindow::calculerBruitUniforme (QImage& argbImage, QString titre, int valeur) {
+    cv::Mat bgrMat;
+    QImageTocvMat(argbImage, bgrMat);
+
+    int rows = bgrMat.rows;
+    int cols = bgrMat.cols * bgrMat.channels();
+    if (bgrMat.isContinuous()) {
+        cols *= rows;
+        rows = 1;
+    }
+    valeur++;
+    uchar v;
+    uchar* p;
+    for (int i = 0; i < rows; i++) {
+        p = bgrMat.ptr<uchar>(i);
+        for (int j = 0; j < cols; j+=3) {
+            v = rng.uniform(0, valeur);
+            *(p + j + 0) = (*(p + j + 0)+v)%256;
+            *(p + j + 1) = (*(p + j + 1)+v)%256;
+            *(p + j + 2) = (*(p + j + 2)+v)%256;
+        }
+    }
+
+    cvMatToQImage(bgrMat, argbImage);
+    creerFenetre(QPixmap::fromImage(argbImage), titre);
+}
+
+void MainWindow::afficherBruitPoivreEtSel (QLabel* label) {
+    QImage image = label->pixmap()->toImage();
+    bool ok;
+    double pourcentage = QInputDialog::getDouble(this, tr("Bruit Poivre et Sel"), tr("Pourcentage (entre 0 et 100): "), 10, 0, 100, 2, &ok, 0);
+    if (!ok) return;
+    this->statusBar()->showMessage(tr("Poivre et Sel(%1%): ").arg(pourcentage));
+    QString titre = QString("Poivre et Sel(%1%): ").arg(pourcentage) + windowTitle[qHash(label)];
+    calculerBruitPoivreEtSel (image, titre, pourcentage/100);
+}
+
+void MainWindow::calculerBruitPoivreEtSel (QImage& argbImage, QString titre, double pourcentage) {
+    cv::Mat bgrMat;
+    QImageTocvMat(argbImage, bgrMat);
+
+/*
+Mat& ScanImageAndReduceC(Mat& I, const uchar* const table)
+{
+    // accept only char type matrices
+    CV_Assert(I.depth() != sizeof(uchar));
+
+    int channels = I.channels();
+
+    int nRows = I.rows;
+    int nCols = I.cols * channels;
+
+    if (I.isContinuous())
+    {
+        nCols *= nRows;
+        nRows = 1;
+    }
+
+    int i,j;
+    uchar* p;
+    for( i = 0; i < nRows; ++i)
+    {
+        p = I.ptr<uchar>(i);
+        for ( j = 0; j < nCols; ++j)
+        {
+            p[j] = table[p[j]];
+        }
+    }
+    return I;
+}
+*/
+    /*
+    uchar lookup [256];
+    for (int i = 0; i < 256; i++)
+        lookup[i] = 255 - i;
+    int rows = bgrMat.rows;
+    int cols = bgrMat.cols * bgrMat.channels();
+    if (bgrMat.isContinuous()) {
+        cols *= rows;
+        rows = 1;
+    }
+    uchar* p;
+    for (int i = 0; i < rows; i++) {
+        p = bgrMat.ptr<uchar>(i);
+        for (int j = 0; j < cols; j+=3) {
+            *(p + j + 0) = lookup[*(p + j + 0)];
+            *(p + j + 1) = lookup[*(p + j + 1)];
+            *(p + j + 2) = lookup[*(p + j + 2)];
+        }
+    }
+    */
+    int rows = bgrMat.rows;
+    int cols = bgrMat.cols * bgrMat.channels();
+    if (bgrMat.isContinuous()) {
+        cols *= rows;
+        rows = 1;
+    }
+    int n = pourcentage*cols/bgrMat.channels();
+    if (n == 0) {
+        creerFenetre(QPixmap::fromImage(argbImage), titre);
+        return;
+    }
+    int cols_no_channels = (int)cols/bgrMat.channels();
+    unsigned long int pixels[n];
+    for (int i = 0; i < n; i++) {
+        pixels[i] = rng.uniform(0, cols_no_channels);
+    }
+    std::sort(pixels, pixels + sizeof(pixels) / sizeof(pixels[0]));
+    uchar v;
+    uchar* p = bgrMat.ptr<uchar>(0);
+    for (int i = 0; i < n; i++) {
+        v = rng.next()%2?0:255;
+        *(p + pixels[i]*3 + 0) = v;
+        *(p + pixels[i]*3 + 1) = v;
+        *(p + pixels[i]*3 + 2) = v;
+    }
+
+    cvMatToQImage(bgrMat, argbImage);
+    creerFenetre(QPixmap::fromImage(argbImage), titre);
+}
+
+void MainWindow::afficherUniforme () {
+    QImage image(256, 256, QImage::Format_RGB888);
+    bool ok;
+    int valeur = QInputDialog::getInt(this, tr("Image Uniforme"), tr("Valeur (entre 0 et 255)"), 0, 0, 255, 1, &ok, 0);
+    if (!ok) return;
+    this->statusBar()->showMessage(tr("Image Uniforme(%1)").arg(valeur));
+    QString titre = QString("Image Uniforme(%1)").arg(valeur);
+    calculerUniforme(image, titre, valeur);
+}
+
+void MainWindow::afficherUniforme (QLabel* label) {
+    QImage image = label->pixmap()->toImage();
+    bool ok;
+    int valeur = QInputDialog::getInt(this, tr("Image Uniforme"), tr("Valeur (entre 0 et 255)"), 0, 0, 255, 1, &ok, 0);
+    if (!ok) return;
+    this->statusBar()->showMessage(tr("Image Uniforme(%1)").arg(valeur));
+    QString titre = QString("Image Uniforme(%1): ").arg(valeur) + windowTitle[qHash(label)];
+    calculerUniforme(image, titre, valeur);
+}
+
+void MainWindow::calculerUniforme (QImage& argbImage, QString titre, int valeur) {
+    cv::Mat bgrMat(argbImage.height(), argbImage.width(), CV_8UC3, cv::Scalar::all(valeur));
+
+    cvMatToQImage(bgrMat, argbImage);
+    creerFenetre(QPixmap::fromImage(argbImage), titre);
+}
+
+void MainWindow::afficherRampe () {
+    QImage image(256, 256, QImage::Format_RGB888);
+    QString titre = QString("Rampe");
+    calculerRampe(image, titre);
+}
+
+void MainWindow::afficherRampe (QLabel* label) {
+    QImage image = label->pixmap()->toImage();
+    QString titre = QString("Rampe");
+    calculerRampe(image, titre);
+}
+
+void MainWindow::calculerRampe (QImage& argbImage, QString titre) {
+    cv::Mat bgrMat(argbImage.height(), argbImage.width(), CV_32FC3, cv::Scalar(1, 1, 270));
+    //cv::cvtColor(bgrMat, bgrMat, CV_BGR2HLS_FULL);
+
+    int rows = bgrMat.rows;
+    int cols = bgrMat.cols * bgrMat.channels();
+    float* p = (float*)bgrMat.data;
+    /*std::cerr << bgrMat.dataend - bgrMat.data << std::endl;
+    std::cerr << cols * rows * 4 << std::endl;
+    std::cerr << (unsigned long int)bgrMat.dataend << std::endl;
+    std::cerr << p + (rows-1)*cols+(cols-1) + 1 << std::endl;*/
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols-1; j++) {
+            *(p + i*cols+j + 0) = (float)((cols-1)-j)/(cols-1);
+            *(p + i*cols+j + 1) = (float)((cols-1)-j)/(cols-1);
+        }
+    }
+    bgrMat.convertTo(bgrMat, CV_8U, 255);
+
+    cvMatToQImage(bgrMat, argbImage);
+    creerFenetre(QPixmap::fromImage(argbImage), titre);
+}
+
 //menu filtrage
 void MainWindow::afficherMoyenneur3x3 (QLabel* label) {
     QImage image = label->pixmap()->toImage();
@@ -779,10 +1059,16 @@ void MainWindow::calculerMoyenneur3x3 (QImage& argbImage, QString titre, cv::Poi
     creerFenetre(QPixmap::fromImage(argbImage), titre);
 }
 
+/*** calculer le temps d'execution
+double t = (double)getTickCount();
+// do something ...
+t = ((double)getTickCount() - t)/getTickFrequency();
+*/
+
 void MainWindow::afficherMoyenneurNxN (QLabel* label) {
     QImage image = label->pixmap()->toImage();
     bool ok;
-    int N = QInputDialog::getInt(this, tr("Moyenneur nxn"), tr("N: "), 3, 3, 9, 2, &ok, 0);
+    int N = QInputDialog::getInt(this, tr("Moyenneur nxn"), tr("N: "), 3, 3, 31, 1, &ok, 0);
     if (!ok) return;
     this->statusBar()->showMessage(tr("N = %1").arg(N));
     QString titre = QString("Moyenneur %1x%2: ").arg(N).arg(N) + windowTitle[qHash(label)];
@@ -829,7 +1115,7 @@ void MainWindow::calculerLaplacien (QImage& argbImage, QString titre, int ksize,
 void MainWindow::afficherMedian (QLabel* label) {
     QImage image = label->pixmap()->toImage();
     bool ok;
-    int N = QInputDialog::getInt(this, tr("Filtre Médian"), tr("N: "), 3, 3, 9, 2, &ok, 0);
+    int N = QInputDialog::getInt(this, tr("Filtre Médian"), tr("N: "), 3, 3, 31, 2, &ok, 0);
     if (!ok) return;
     this->statusBar()->showMessage(tr("Filtre Médian %1x%2").arg(N).arg(N));
     QString titre = QString("Filtre Médian %1x%2: ").arg(N).arg(N) + windowTitle[qHash(label)];
@@ -901,9 +1187,8 @@ void MainWindow::calculerFFT (QImage& argbImage, QString titre) {
 
     cv::normalize(magI, magI, 0, 1, CV_MINMAX); // Transform the matrix with float values into a
                                             // viewable image form (float between values 0 and 1).
-
-    cv::imshow("FFT", magI);
-    cv::cvtColor(magI, bgrMat, CV_GRAY2BGR);
+    magI.convertTo (bgrMat, CV_8U, 255);
+    cv::cvtColor(bgrMat, bgrMat, CV_GRAY2BGR);
 
     cvMatToQImage (bgrMat, argbImage);
     creerFenetre (QPixmap::fromImage (argbImage), titre);
@@ -1219,6 +1504,56 @@ void MainWindow::on_actionCombinaison_triggered () {
     afficherCombinaison (labelGauche, labelDroite);
 }
 
+void MainWindow::on_actionNOT_triggered () {
+    QLabel* label = getFocusedLabel();
+    if (label == NULL)
+        return;
+    afficherNOT (label);
+}
+
+void MainWindow::on_actionPlanBinaire_triggered () {
+    QLabel* label = getFocusedLabel();
+    if (label == NULL)
+        return;
+    afficherPlanBinaire (label);
+}
+
+void MainWindow::on_actionQuantification_triggered () {
+    QLabel* label = getFocusedLabel();
+    if (label == NULL)
+        return;
+    afficherQuantification (label);
+}
+
+void MainWindow::on_actionBruitUniforme_triggered () {
+    QLabel* label = getFocusedLabel();
+    if (label == NULL)
+        return;
+    afficherBruitUniforme (label);
+}
+
+void MainWindow::on_actionBruitPoivreEtSel_triggered () {
+    QLabel* label = getFocusedLabel();
+    if (label == NULL)
+        return;
+    afficherBruitPoivreEtSel (label);
+}
+
+void MainWindow::on_actionUniforme_triggered () {
+    QLabel* label = getFocusedLabel();
+    if (label == NULL)
+        afficherUniforme ();
+    else
+        afficherUniforme (label);
+}
+
+void MainWindow::on_actionRampe_triggered () {
+    QLabel* label = getFocusedLabel();
+    if (label == NULL)
+        afficherRampe ();
+    else
+        afficherRampe (label);
+}
 //menu filtrage
 void MainWindow::on_actionMoyenneur3x3_triggered () {
     QLabel* label = getFocusedLabel();

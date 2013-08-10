@@ -12,6 +12,7 @@
 
 #include <iostream>
 #include <typeinfo>
+#include <algorithm>
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -72,6 +73,7 @@ private:
     Ui::MainWindow* ui;
     QHash<uint, double> scaleFactor;
     QHash<uint, QString> windowTitle;
+    cv::RNG rng;
 
     bool eventFilter (QObject* watched, QEvent* e);
 
@@ -103,6 +105,23 @@ private:
     void calculerSoustraction (QImage& argbImageGauche, QImage& argbImageDroite, QString titre);
     void afficherCombinaison (QLabel* labelGauche, QLabel* labelDroite);
     void calculerCombinaison (QImage& argbImageGauche, QImage& argbImageDroite, QString titre, double alpha);
+    void afficherNOT (QLabel* label);
+    void calculerNOT (QImage& argbImage, QString titre);
+    void afficherPlanBinaire (QLabel* label);
+    void calculerPlanBinaire (QImage& argbImage, QString titre, int bit);
+    void afficherQuantification (QLabel* label);
+    void calculerQuantification (QImage& argbImage, QString titre, int bits);
+    void afficherBruitUniforme (QLabel* label);
+    void calculerBruitUniforme (QImage& argbImage, QString titre, int valeur = 127);
+    void afficherBruitPoivreEtSel (QLabel* label);
+    void calculerBruitPoivreEtSel (QImage& argbImage, QString titre, double pourcentage);
+    void afficherUniforme ();
+    void afficherUniforme (QLabel* label);
+    void calculerUniforme (QImage& argbImage, QString titre, int valeur = 0);
+    void afficherRampe ();
+    void afficherRampe (QLabel* label);
+    void calculerRampe (QImage& argbImage, QString titre);
+    void calculerRampe (QImage& argbImage, QString titre, int blue, int rouge, int vert);
 
     //menu filtrage
     void afficherMoyenneur3x3 (QLabel* label);
@@ -140,6 +159,13 @@ private slots:
     void on_actionAddition_triggered ();
     void on_actionSoustraction_triggered ();
     void on_actionCombinaison_triggered ();
+    void on_actionNOT_triggered ();
+    void on_actionPlanBinaire_triggered ();
+    void on_actionQuantification_triggered ();
+    void on_actionBruitUniforme_triggered ();
+    void on_actionBruitPoivreEtSel_triggered ();
+    void on_actionUniforme_triggered ();
+    void on_actionRampe_triggered ();
 
     //menu filtrage
     void on_actionMoyenneur3x3_triggered ();
