@@ -673,7 +673,7 @@
     <bool>false</bool>
    </property>
    <property name="text">
-    <string>Moyenneur nxn (séparable)</string>
+    <string>Moyenneur NxN (séparable)</string>
    </property>
   </action>
   <action name="actionLaplacien">

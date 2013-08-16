@@ -7,6 +7,8 @@
  * Creation date 2013-07-04T17:30:28
  */
 
+
+
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
@@ -50,6 +52,7 @@ namespace Ui {
 }
 
   enum TypeSobel {SOBEL_NORME, SOBEL_X, SOBEL_Y};
+  enum TypePrewitt {PREWITT_NORME, PREWITT_X, PREWITT_Y};
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -61,7 +64,7 @@ public:
     static const char* PATTERN_OUVERTURE_IMAGES_QT_OU_OPENCV;
     static const char* PATTERN_OUVERTURE_IMAGES_QT_ET_OPENCV;
     static const char* DOSSIER_DEFAUT_OUVERTURE_IMAGES;
-    static const uint BORDER_TYPE = cv::BORDER_DEFAULT;
+    static const int BORDER_TYPE = cv::BORDER_DEFAULT;
 
     explicit MainWindow(QWidget* parent = 0);
     ~MainWindow();
@@ -99,12 +102,28 @@ private:
     void calculerRecadrage (QImage& argbImage, QString titre);
     void afficherHistogrammeNegatif (QLabel* label);
     void calculerHistogrammeNegatif (QImage& argbImage, QString titre);
+    void afficherCalibration (QLabel* label);
+    void calculerCalibration (QImage& argbImage, QString titre, double valeurMin, double valeurMax);
+    void afficherExponentielle (QLabel* label);
+    void calculerExponentielle (QImage& argbImage, QString titre);
+    void afficherLogarithmique (QLabel* label);
+    void calculerLogarithmique (QImage& argbImage, QString titre);
     void afficherAddition (QLabel* labelGauche, QLabel* labelDroite);
     void calculerAddition (QImage& argbImageGauche, QImage& argbImageDroite, QString titre);
     void afficherSoustraction (QLabel* labelGauche, QLabel* labelDroite);
     void calculerSoustraction (QImage& argbImageGauche, QImage& argbImageDroite, QString titre);
     void afficherCombinaison (QLabel* labelGauche, QLabel* labelDroite);
     void calculerCombinaison (QImage& argbImageGauche, QImage& argbImageDroite, QString titre, double alpha);
+    void afficherMinimum (QLabel* labelGauche, QLabel* labelDroite);
+    void calculerMinimum (QImage& argbImageGauche, QImage& argbImageDroite, QString titre);
+    void afficherMaximum (QLabel* labelGauche, QLabel* labelDroite);
+    void calculerMaximum (QImage& argbImageGauche, QImage& argbImageDroite, QString titre);
+    void afficherAND (QLabel* labelGauche, QLabel* labelDroite);
+    void calculerAND (QImage& argbImageGauche, QImage& argbImageDroite, QString titre);
+    void afficherOR (QLabel* labelGauche, QLabel* labelDroite);
+    void calculerOR (QImage& argbImageGauche, QImage& argbImageDroite, QString titre);
+    void afficherXOR (QLabel* labelGauche, QLabel* labelDroite);
+    void calculerXOR (QImage& argbImageGauche, QImage& argbImageDroite, QString titre);
     void afficherNOT (QLabel* label);
     void calculerNOT (QImage& argbImage, QString titre);
     void afficherPlanBinaire (QLabel* label);
@@ -139,11 +158,13 @@ private:
     void afficherSeuillageManuelSimple (QLabel* label);
     void calculerSeuillageManuelSimple (QImage& argbImage, QString titre, double seuil, double maxval = 255);
     void afficherSeuillageManuelDouble (QLabel* label);
-    void calculerSeuillageManuelDouble (QImage& argbImage, QString titre, double seuil, double maxval = 255);
+    void calculerSeuillageManuelDouble (QImage& argbImage, QString titre, double seuilBas, double seuilHaut, double minVal = 0, double midVal = 127, double maxVal = 255);
     void afficherSeuillageParHysteresis (QLabel* label);
     void calculerSeuillageParHysteresis (QImage& argbImage, QString titre, int seuilBas, int seuilHaut, int ksize = 3, bool utiliserNormeL2 = false);
     void afficherGradientSobel (QLabel* label, TypeSobel type);
     void calculerGradientSobel (QImage& argbImage, QString titre, TypeSobel, int ksize = 3, double gain = 1, double offset = 0, int borderType = cv::BORDER_DEFAULT);
+    void afficherGradientPrewitt (QLabel* label, TypePrewitt type);
+    void calculerGradientPrewitt (QImage& argbImage, QString titre, TypePrewitt type, int ksize = 3, double gain = 1, double offset = 0, int borderType = cv::BORDER_DEFAULT);
 
 private slots:
     void on_actionOuvrir_triggered ();
@@ -156,9 +177,17 @@ private slots:
     void on_actionAffichage_triggered ();
     void on_actionRecadrage_triggered ();
     void on_actionNegatif_triggered ();
+    void on_actionCalibration_triggered ();void on_actionGainOffsetHistogramme_triggered ();
+    void on_actionLogarithmique_triggered ();
+    void on_actionExponentielle_triggered ();
     void on_actionAddition_triggered ();
     void on_actionSoustraction_triggered ();
     void on_actionCombinaison_triggered ();
+    void on_actionMinimum_triggered ();
+    void on_actionMaximum_triggered ();
+    void on_actionAND_triggered ();
+    void on_actionOR_triggered ();
+    void on_actionXOR_triggered ();
     void on_actionNOT_triggered ();
     void on_actionPlanBinaire_triggered ();
     void on_actionQuantification_triggered ();
@@ -181,6 +210,9 @@ private slots:
     void on_actionNormeSobel_triggered ();
     void on_actionGradientXSobel_triggered ();
     void on_actionGradientYSobel_triggered ();
+    void on_actionNormePrewitt_triggered ();
+    void on_actionGradientXPrewitt_triggered ();
+    void on_actionGradientYPrewitt_triggered ();
 };
 
 void QImageTocvMat (const QImage& in, cv::Mat& out);

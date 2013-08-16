@@ -38,8 +38,14 @@ unix {
 }
 
 SOURCES += main.cpp\
-        mainwindow.cpp
+        mainwindow.cpp \
+    intintdialog.cpp \
+    doubledoubledialog.cpp \
+    doubleintdialog.cpp
 
-HEADERS  += mainwindow.h
+HEADERS  += mainwindow.h \
+    intintdialog.h \
+    doubledoubledialog.h \
+    doubleintdialog.h
 
 FORMS    += mainwindow.ui

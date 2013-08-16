@@ -11,6 +11,9 @@
 
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include "intintdialog.h"
+#include "doubledoubledialog.h"
+#include "doubleintdialog.h"
 
 
 
@@ -68,6 +71,100 @@ const char* MainWindow::PATTERN_OUVERTURE_IMAGES_QT_ET_OPENCV = "Images Windows 
                                                          "Tout Type (*.*)";
 const char* MainWindow::DOSSIER_DEFAUT_OUVERTURE_IMAGES = "./../TCIMAG_ressources";
 
+/*
+//void cv::Scharr(InputArray _src, OutputArray _dst, int ddepth, int dx, int dy, double scale, double delta, int borderType)
+    / *
+    Mat src = _src.getMat();
+    if (ddepth < 0)
+        ddepth = src.depth();
+    _dst.create( src.size(), CV_MAKETYPE(ddepth, src.channels()) );
+    Mat dst = _dst.getMat();
+    * /
+    cv::Mat src = ((cv::InputArray)gMat).getMat();
+    if (ddepth < 0)
+        ddepth = src.depth();
+    ((cv::OutputArray)_dst).create(src.size(), CV_MAKETYPE(ddepth, src.channels()));
+    cv::Mat dst = ((cv::OutputArray)_dst).getMat();
+
+    int ktype = std::max(CV_32F, std::max(ddepth, src.depth()));
+
+    cv::Mat kx, ky;
+    //getScharrKernels(_kx, _ky, dx, dy, false, ktype);
+    //static void getScharrKernels(OutputArray _kx, OutputArray _ky, int dx, int dy, bool normalize, int ktype) {
+    //const int ksize = 3;
+
+    CV_Assert(ktype == CV_32F || ktype == CV_64F);
+    ((cv::OutputArray)kx).create(ksize, 1, ktype, -1, true);
+    ((cv::OutputArray)ky).create(ksize, 1, ktype, -1, true);
+    cv::Mat _kx = ((cv::InputArray)kx).getMat();
+    cv::Mat _ky = ((cv::InputArray)ky).getMat();
+
+    CV_Assert(dx >= 0 && dy >= 0 && dx+dy == 1);
+
+    for(int k = 0; k < 2; k++) {
+        cv::Mat* kernel = k == 0 ? &_kx : &_ky;
+        int order = k == 0 ? dx : dy;
+        int kerI[3];
+
+        if( order == 0 )
+            kerI[0] = 1, kerI[1] = 1, kerI[2] = 1;
+        else if( order == 1 )
+            kerI[0] = -1, kerI[1] = 0, kerI[2] = 1;
+
+        cv::Mat temp(kernel->rows, kernel->cols, CV_32S, &kerI[0]);
+        double scale = !true || order == 1 ? 1. : 1./32;
+        temp.convertTo(*kernel, ktype, scale);
+    }
+    //}
+    if(gain != 1) {
+        // usually the smoothing part is the slowest to compute,
+        // so try to scale it instead of the faster differenciating part
+        if(dx == 0)
+            kx *= gain;
+        else
+            ky *= gain;
+    }
+    cv::sepFilter2D(src, dst, ddepth, kx, ky, cv::Point(-1,-1), offset, borderType);
+*/
+
+
+void Prewitt(cv::InputArray _src, cv::OutputArray _dst, int ddepth, int dx, int dy, double gain, double offset, int borderType) {
+    cv::Mat src = _src.getMat();
+    if (ddepth < 0)
+        ddepth = src.depth();
+    _dst.create(src.size(), CV_MAKETYPE(ddepth, src.channels()));
+    cv::Mat dst = _dst.getMat();
+    int ktype = std::max(CV_32F, std::max(ddepth, src.depth()));
+    cv::Mat kx, ky;
+    const int ksize = 3;
+    CV_Assert(ktype == CV_32F || ktype == CV_64F);
+    ((cv::OutputArray)kx).create(ksize, 1, ktype, -1, true);
+    ((cv::OutputArray)ky).create(ksize, 1, ktype, -1, true);
+    cv::Mat _kx = ((cv::OutputArray)kx).getMat();
+    cv::Mat _ky = ((cv::OutputArray)ky).getMat();
+    CV_Assert(dx >= 0 && dy >= 0 && dx+dy == 1);
+    for(int k = 0; k < 2; k++) {
+        cv::Mat* kernel = k == 0 ? &_kx : &_ky;
+        int order = k == 0 ? dx : dy;
+        int kerI[3];
+        if( order == 0 )
+            kerI[0] = 1, kerI[1] = 1, kerI[2] = 1;
+        else if( order == 1 )
+            kerI[0] = -1, kerI[1] = 0, kerI[2] = 1;
+        cv::Mat temp(kernel->rows, kernel->cols, CV_32S, &kerI[0]);
+        double scale = order == 1 ? 1. : 1./32;
+        temp.convertTo(*kernel, ktype, scale);
+    }
+    if (gain != 1) {
+        // usually the smoothing part is the slowest to compute, so try to scale it instead of the faster differenciating part
+        if(dx == 0)
+            kx *= gain;
+        else
+            ky *= gain;
+    }
+    cv::sepFilter2D(src, dst, ddepth, kx, ky, cv::Point(-1,-1), offset, borderType);
+}
+
 MainWindow::MainWindow (QWidget* parent) : QMainWindow (parent), ui (new Ui::MainWindow) {
     ui->setupUi(this);
     rng = cv::RNG(cv::getTickCount());
@@ -121,8 +218,16 @@ MainWindow::MainWindow (QWidget* parent) : QMainWindow (parent), ui (new Ui::Mai
     ui->actionRecadrage->setEnabled(true);
     ui->actionNegatif->setEnabled(true);
     ui->actionAddition->setEnabled(true);
+    ui->actionCalibration->setEnabled(true);//ui->actionGainOffsetHistogramme->setEnabled(true);
+    ui->actionExponentielle->setEnabled(true);
+    ui->actionLogarithmique->setEnabled(true);
     ui->actionSoustraction->setEnabled(true);
     ui->actionCombinaison->setEnabled(true);
+    ui->actionMinimum->setEnabled(true);
+    ui->actionMaximum->setEnabled(true);
+    ui->actionAND->setEnabled(true);
+    ui->actionOR->setEnabled(true);
+    ui->actionXOR->setEnabled(true);
     ui->actionNOT->setEnabled(true);
     ui->actionPlanBinaire->setEnabled(true);
     ui->actionQuantification->setEnabled(true);
@@ -138,16 +243,16 @@ MainWindow::MainWindow (QWidget* parent) : QMainWindow (parent), ui (new Ui::Mai
     ui->actionMedian->setEnabled(true);
     ui->actionFFT->setEnabled(true);
 
-    ui->actionMoyenneurNxN->setText(tr("Moyenneur nxn"));
-    ui->actionMoyenneurNxN->setIconText(tr("Moyenneur nxn"));
-    ui->actionMoyenneurNxN->setToolTip(tr("Moyenneur nxn"));
-
     //menu segmentation
     ui->actionManuelSimple->setEnabled(true);
+    ui->actionManuelDouble->setEnabled(true);
     ui->actionSeuillageParHysteresis->setEnabled(true);
     ui->actionNormeSobel->setEnabled(true);
     ui->actionGradientXSobel->setEnabled(true);
     ui->actionGradientYSobel->setEnabled(true);
+    ui->actionNormePrewitt->setEnabled(true);
+    ui->actionGradientXPrewitt->setEnabled(true);
+    ui->actionGradientYPrewitt->setEnabled(true);
 }
 
 MainWindow::~MainWindow () {
@@ -498,7 +603,7 @@ void MainWindow::calculerHistogramme(QImage& argbImage, QString titre) {
         cv::line(histImage, cv::Point(0, cvRound(histImage.rows*2/3)), cv::Point(histImage.cols, cvRound(histImage.rows*2/3)), labelAxes);
 
         //// Draw for each channel
-        for( int i = 1; i < histSize; i++ ) {
+        for(int i = 1; i < histSize; i++ ) {
             cv::line( histImage, cv::Point( bin_w*(i-1), hist_h - cvRound(b_hist.at<float>(i-1)) ) ,
                       cv::Point( bin_w*(i), hist_h - cvRound(b_hist.at<float>(i)) ),
                       cv::Scalar( 255, 0, 0), 2, 8, 0  );
@@ -560,7 +665,7 @@ void MainWindow::calculerHistogramme(QImage& argbImage, QString titre) {
 
 
         //// Draw the channel
-        for( int i = 1; i < histSize; i++ ) {
+        for(int i = 1; i < histSize; i++ ) {
             cv::line( histImage, cv::Point( bin_w*(i-1), hist_h - cvRound(b_hist.at<float>(i-1)) ) ,
                       cv::Point( bin_w*(i), hist_h - cvRound(b_hist.at<float>(i)) ),
                       cv::Scalar::all(31), 2, 8, 0  );
@@ -660,17 +765,150 @@ void MainWindow::calculerHistogrammeNegatif (QImage& argbImage, QString titre) {
         cv::cvtColor(result, bgrMat, CV_GRAY2BGR);
     } else {
         cv::MatIterator_<cv::Vec3b> it, end;
-        for( it = bgrMat.begin<cv::Vec3b>(), end = bgrMat.end<cv::Vec3b>(); it != end; ++it) {
+        for(it = bgrMat.begin<cv::Vec3b>(), end = bgrMat.end<cv::Vec3b>(); it != end; ++it) {
             (*it)[0] = lookup[(*it)[0]];
             (*it)[1] = lookup[(*it)[1]];
             (*it)[2] = lookup[(*it)[2]];
         }
     }*/
     cv::MatIterator_<cv::Vec3b> it, end;
-    for( it = bgrMat.begin<cv::Vec3b>(), end = bgrMat.end<cv::Vec3b>(); it != end; ++it) {
+    for(it = bgrMat.begin<cv::Vec3b>(), end = bgrMat.end<cv::Vec3b>(); it != end; ++it) {
         (*it)[0] = lookup[(*it)[0]];
         (*it)[1] = lookup[(*it)[1]];
         (*it)[2] = lookup[(*it)[2]];
+    }
+
+    cvMatToQImage(bgrMat, argbImage);
+    creerFenetre(QPixmap::fromImage(argbImage), titre);
+}
+
+void MainWindow::afficherCalibration (QLabel* label) {
+    QImage image = label->pixmap()->toImage();
+    int seuil1, seuil2;
+    bool ok;
+    IntIntDialog d(this, QString("Calibration d'Histogramme"), QString("Min (entre 0 et 255): "), 80, 0, 255, 1, QString("Max (entre 0 et 255): "), 240, 0, 255, 1);
+    d.run(seuil1, seuil2, ok);
+    if (!ok) return;
+    this->statusBar()->showMessage(tr("Calibration d'Histogramme(%1;%2): ").arg(seuil1).arg(seuil2));
+    QString titre = QString("Calibration d'Histogramme(%1;%2): ").arg(seuil1).arg(seuil2) + windowTitle[qHash(label)];
+    calculerCalibration(image, titre, seuil1, seuil2);
+}
+
+void MainWindow::calculerCalibration (QImage& argbImage, QString titre, double valeurMin, double valeurMax) {
+    cv::Mat bgrMat;
+    QImageTocvMat(argbImage, bgrMat);
+
+    /*int min_0 = 256, min_1 = 256, min_2 = 256;
+    int max_0 = -1, max_1 = -1, max_2 = -1;
+    int i_0 = 0, i_1 = 0, i_2 = 0;
+    cv::MatIterator_<cv::Vec3b> it, end;
+    for(it = bgrMat.begin<cv::Vec3b>(), end = bgrMat.end<cv::Vec3b>(); it != end; ++it) {
+        i_0 = (*it)[0];
+        i_1 = (*it)[1];
+        i_2 = (*it)[2];
+        if (i_0 < min_0) min_0 = i_0;
+        if (i_0 > max_0) max_0 = i_0;
+        if (i_1 < min_1) min_1 = i_1;
+        if (i_1 > max_1) max_1 = i_1;
+        if (i_2 < min_2) min_2 = i_2;
+        if (i_2 > max_2) max_2 = i_2;
+    }
+    double m_0 = (valeurMax - valeurMin)/(max_0 - min_0);
+    double b_0 = valeurMin - m_0 * min_0;
+    double m_1 = (valeurMax - valeurMin)/(max_1 - min_1);
+    double b_1 = valeurMin - m_1 * min_1;
+    double m_2 = (valeurMax - valeurMin)/(max_2 - min_2);
+    double b_2 = valeurMin - m_2 * min_2;
+    uchar lookup_0 [256], lookup_1 [256], lookup_2 [256];
+
+    for(int i = 0; i < min_0; i++)
+        lookup_0[i] = 0;
+    for(int i = min_0; i <= max_0; i++)
+        lookup_0[i] = round(m_0 * i + b_0);
+    for(int i = max_0 + 1; i < 256; i++)
+        lookup_0[i] = 0;
+
+    for(int i = 0; i < min_1; i++)
+        lookup_1[i] = 0;
+    for(int i = min_1; i <= max_1; i++)
+        lookup_1[i] = round(m_1 * i + b_1);
+    for(int i = max_0 + 1; i < 256; i++)
+        lookup_1[i] = 0;
+
+    for(int i = 0; i < min_2; i++)
+        lookup_2[i] = 0;
+    for(int i = min_2; i <= max_2; i++)
+        lookup_2[i] = round(m_2 * i + b_2);
+    for(int i = max_2 + 1; i < 256; i++)
+        lookup_2[i] = 0;
+
+    for(it = bgrMat.begin<cv::Vec3b>(), end = bgrMat.end<cv::Vec3b>(); it != end; ++it) {
+        (*it)[0] = lookup_0[(*it)[0]];
+        (*it)[1] = lookup_1[(*it)[1]];
+        (*it)[2] = lookup_2[(*it)[2]];
+    }*/
+    cv::normalize(bgrMat, bgrMat, valeurMin, valeurMax, CV_MINMAX);
+
+    cvMatToQImage(bgrMat, argbImage);
+    creerFenetre(QPixmap::fromImage(argbImage), titre);
+}
+
+void MainWindow::afficherExponentielle (QLabel* label) {
+    QImage image = label->pixmap()->toImage();
+    this->statusBar()->showMessage(tr("Exponentielle"));
+    QString titre = QString("Exponentielle: ") + windowTitle[qHash(label)];
+    calculerExponentielle(image, titre);
+}
+
+void MainWindow::calculerExponentielle (QImage& argbImage, QString titre) {
+    cv::Mat bgrMat;
+    QImageTocvMat(argbImage, bgrMat);
+
+    if (argbImage.isGrayscale()) {
+        cv::cvtColor(bgrMat, bgrMat, CV_BGR2GRAY);
+        bgrMat.convertTo(bgrMat, CV_64F, 1.d/255, 0);
+        cv::exp(bgrMat, bgrMat);
+        bgrMat -= 1.d;
+        cv::normalize(bgrMat, bgrMat, 0, 1, CV_MINMAX);
+        bgrMat.convertTo(bgrMat, CV_8U, 255, 0);
+        cv::cvtColor(bgrMat, bgrMat, CV_GRAY2BGR);
+    } else {
+        bgrMat.convertTo(bgrMat, CV_64F, 1.d/255, 0);
+        cv::exp(bgrMat, bgrMat);
+        bgrMat -= 1.d;
+        cv::normalize(bgrMat, bgrMat, 0, 1, CV_MINMAX);
+        bgrMat.convertTo(bgrMat, CV_8U, 255, 0);
+    }
+
+    cvMatToQImage(bgrMat, argbImage);
+    creerFenetre(QPixmap::fromImage(argbImage), titre);
+}
+
+void MainWindow::afficherLogarithmique (QLabel* label) {
+    QImage image = label->pixmap()->toImage();
+    this->statusBar()->showMessage(tr("Logarithmique"));
+    QString titre = QString("Logarithmique: ") + windowTitle[qHash(label)];
+    calculerLogarithmique(image, titre);
+}
+
+void MainWindow::calculerLogarithmique (QImage& argbImage, QString titre) {
+    cv::Mat bgrMat;
+    QImageTocvMat(argbImage, bgrMat);
+
+    if (argbImage.isGrayscale()) {
+        cv::cvtColor(bgrMat, bgrMat, CV_BGR2GRAY);
+        bgrMat.convertTo(bgrMat, CV_64F, 1.d, 0);
+        bgrMat += 1.d;
+        cv::log(bgrMat, bgrMat);
+        cv::normalize(bgrMat, bgrMat, 0, 1, CV_MINMAX);
+        bgrMat.convertTo(bgrMat, CV_8U, 255, 0);
+        cv::cvtColor(bgrMat, bgrMat, CV_GRAY2BGR);
+    } else {
+        bgrMat.convertTo(bgrMat, CV_64F, 1.d, 0);
+        bgrMat += 1.d;
+        cv::log(bgrMat, bgrMat);
+        cv::normalize(bgrMat, bgrMat, 0, 1, CV_MINMAX);
+        bgrMat.convertTo(bgrMat, CV_8U, 255, 0);
     }
 
     cvMatToQImage(bgrMat, argbImage);
@@ -776,6 +1014,186 @@ void MainWindow::calculerCombinaison (QImage& argbImageGauche, QImage& argbImage
     creerFenetre(QPixmap::fromImage(result), titre);
 }
 
+void MainWindow::afficherMinimum (QLabel* labelDroite, QLabel* labelGauche) {
+    QImage imageGauche = labelGauche->pixmap()->toImage();
+    QImage imageDroite = labelDroite->pixmap()->toImage();
+    if (imageGauche.size() != imageDroite.size()) {
+        QString msg = tr("Le minimum n'est définie que pour des images de la même taille !");
+        QErrorMessage err(this);
+        err.showMessage(msg);
+        err.exec();
+        this->statusBar()->showMessage(msg);
+        return;
+    }
+    QString titre = QString("Min(%1,%2)").arg(windowTitle[qHash(labelDroite)]).arg(windowTitle[qHash(labelGauche)]);
+    calculerMinimum(imageDroite, imageGauche, titre);
+}
+
+void MainWindow::calculerMinimum (QImage& argbImageGauche, QImage& argbImageDroite, QString titre) {
+    if (argbImageGauche.size() != argbImageDroite.size())
+        return;
+    cv::Mat bgrMatG;
+    QImageTocvMat(argbImageGauche, bgrMatG);
+    cv::Mat bgrMatD;
+    QImageTocvMat(argbImageDroite, bgrMatD);
+
+    cv::Mat dst(bgrMatG.rows, bgrMatD.cols, bgrMatG.type());
+    cv::MatIterator_<cv::Vec3b> it1, it2, it3, end;
+    for(it1 = bgrMatG.begin<cv::Vec3b>(), it2 = bgrMatD.begin<cv::Vec3b>(), it3 = dst.begin<cv::Vec3b>(), end = bgrMatG.end<cv::Vec3b>(); it1 != end; ++it1, ++it2, ++it3) {
+        (*it3)[0] = std::min((*it1)[0], (*it2)[0]);
+        (*it3)[1] = std::min((*it1)[1], (*it2)[1]);
+        (*it3)[2] = std::min((*it1)[2], (*it2)[2]);
+    }
+
+    QImage result;
+    cvMatToQImage(dst, result);
+    creerFenetre(QPixmap::fromImage(result), titre);
+}
+
+void MainWindow::afficherMaximum (QLabel* labelDroite, QLabel* labelGauche) {
+    QImage imageGauche = labelGauche->pixmap()->toImage();
+    QImage imageDroite = labelDroite->pixmap()->toImage();
+    if (imageGauche.size() != imageDroite.size()) {
+        QString msg = tr("Le maximum n'est définie que pour des images de la même taille !");
+        QErrorMessage err(this);
+        err.showMessage(msg);
+        err.exec();
+        this->statusBar()->showMessage(msg);
+        return;
+    }
+    QString titre = QString("Max(%1,%2)").arg(windowTitle[qHash(labelDroite)]).arg(windowTitle[qHash(labelGauche)]);
+    calculerMaximum(imageDroite, imageGauche, titre);
+}
+
+void MainWindow::calculerMaximum (QImage& argbImageGauche, QImage& argbImageDroite, QString titre) {
+    if (argbImageGauche.size() != argbImageDroite.size())
+        return;
+    cv::Mat bgrMatG;
+    QImageTocvMat(argbImageGauche, bgrMatG);
+    cv::Mat bgrMatD;
+    QImageTocvMat(argbImageDroite, bgrMatD);
+
+    cv::Mat dst(bgrMatG.rows, bgrMatD.cols, bgrMatG.type());
+    cv::MatIterator_<cv::Vec3b> it1, it2, it3, end;
+    for(it1 = bgrMatG.begin<cv::Vec3b>(), it2 = bgrMatD.begin<cv::Vec3b>(), it3 = dst.begin<cv::Vec3b>(), end = bgrMatG.end<cv::Vec3b>(); it1 != end; ++it1, ++it2, ++it3) {
+        (*it3)[0] = std::max((*it1)[0], (*it2)[0]);
+        (*it3)[1] = std::max((*it1)[1], (*it2)[1]);
+        (*it3)[2] = std::max((*it1)[2], (*it2)[2]);
+    }
+
+    QImage result;
+    cvMatToQImage(dst, result);
+    creerFenetre(QPixmap::fromImage(result), titre);
+}
+
+void MainWindow::afficherAND (QLabel* labelDroite, QLabel* labelGauche) {
+    QImage imageGauche = labelGauche->pixmap()->toImage();
+    QImage imageDroite = labelDroite->pixmap()->toImage();
+    if (imageGauche.size() != imageDroite.size()) {
+        QString msg = tr("L'opérateur AND n'est définie que pour des images de la même taille !");
+        QErrorMessage err(this);
+        err.showMessage(msg);
+        err.exec();
+        this->statusBar()->showMessage(msg);
+        return;
+    }
+    QString titre = windowTitle[qHash(labelDroite)] + QString(" AND ") + windowTitle[qHash(labelGauche)];
+    calculerAND(imageDroite, imageGauche, titre);
+}
+
+void MainWindow::calculerAND (QImage& argbImageGauche, QImage& argbImageDroite, QString titre) {
+    if (argbImageGauche.size() != argbImageDroite.size())
+        return;
+    cv::Mat bgrMatG;
+    QImageTocvMat(argbImageGauche, bgrMatG);
+    cv::Mat bgrMatD;
+    QImageTocvMat(argbImageDroite, bgrMatD);
+
+    cv::Mat dst(bgrMatG.rows, bgrMatD.cols, bgrMatG.type());
+    cv::MatIterator_<cv::Vec3b> it1, it2, it3, end;
+    for(it1 = bgrMatG.begin<cv::Vec3b>(), it2 = bgrMatD.begin<cv::Vec3b>(), it3 = dst.begin<cv::Vec3b>(), end = bgrMatG.end<cv::Vec3b>(); it1 != end; ++it1, ++it2, ++it3) {
+        (*it3)[0] = (*it1)[0] & (*it2)[0];
+        (*it3)[1] = (*it1)[1] & (*it2)[1];
+        (*it3)[2] = (*it1)[2] & (*it2)[2];
+    }
+
+    QImage result;
+    cvMatToQImage(dst, result);
+    creerFenetre(QPixmap::fromImage(result), titre);
+}
+
+void MainWindow::afficherOR (QLabel* labelDroite, QLabel* labelGauche) {
+    QImage imageGauche = labelGauche->pixmap()->toImage();
+    QImage imageDroite = labelDroite->pixmap()->toImage();
+    if (imageGauche.size() != imageDroite.size()) {
+        QString msg = tr("L'opérateur OR n'est définie que pour des images de la même taille !");
+        QErrorMessage err(this);
+        err.showMessage(msg);
+        err.exec();
+        this->statusBar()->showMessage(msg);
+        return;
+    }
+    QString titre = windowTitle[qHash(labelDroite)] + QString(" OR ") + windowTitle[qHash(labelGauche)];
+    calculerOR(imageDroite, imageGauche, titre);
+}
+
+void MainWindow::calculerOR (QImage& argbImageGauche, QImage& argbImageDroite, QString titre) {
+    if (argbImageGauche.size() != argbImageDroite.size())
+        return;
+    cv::Mat bgrMatG;
+    QImageTocvMat(argbImageGauche, bgrMatG);
+    cv::Mat bgrMatD;
+    QImageTocvMat(argbImageDroite, bgrMatD);
+
+    cv::Mat dst(bgrMatG.rows, bgrMatD.cols, bgrMatG.type());
+    cv::MatIterator_<cv::Vec3b> it1, it2, it3, end;
+    for(it1 = bgrMatG.begin<cv::Vec3b>(), it2 = bgrMatD.begin<cv::Vec3b>(), it3 = dst.begin<cv::Vec3b>(), end = bgrMatG.end<cv::Vec3b>(); it1 != end; ++it1, ++it2, ++it3) {
+        (*it3)[0] = (*it1)[0] | (*it2)[0];
+        (*it3)[1] = (*it1)[1] | (*it2)[1];
+        (*it3)[2] = (*it1)[2] | (*it2)[2];
+    }
+
+    QImage result;
+    cvMatToQImage(dst, result);
+    creerFenetre(QPixmap::fromImage(result), titre);
+}
+
+void MainWindow::afficherXOR (QLabel* labelDroite, QLabel* labelGauche) {
+    QImage imageGauche = labelGauche->pixmap()->toImage();
+    QImage imageDroite = labelDroite->pixmap()->toImage();
+    if (imageGauche.size() != imageDroite.size()) {
+        QString msg = tr("L'opérateur XOR n'est définie que pour des images de la même taille !");
+        QErrorMessage err(this);
+        err.showMessage(msg);
+        err.exec();
+        this->statusBar()->showMessage(msg);
+        return;
+    }
+    QString titre = windowTitle[qHash(labelDroite)] + QString(" XOR ") + windowTitle[qHash(labelGauche)];
+    calculerXOR(imageDroite, imageGauche, titre);
+}
+
+void MainWindow::calculerXOR (QImage& argbImageGauche, QImage& argbImageDroite, QString titre) {
+    if (argbImageGauche.size() != argbImageDroite.size())
+        return;
+    cv::Mat bgrMatG;
+    QImageTocvMat(argbImageGauche, bgrMatG);
+    cv::Mat bgrMatD;
+    QImageTocvMat(argbImageDroite, bgrMatD);
+
+    cv::Mat dst(bgrMatG.rows, bgrMatD.cols, bgrMatG.type());
+    cv::MatIterator_<cv::Vec3b> it1, it2, it3, end;
+    for(it1 = bgrMatG.begin<cv::Vec3b>(), it2 = bgrMatD.begin<cv::Vec3b>(), it3 = dst.begin<cv::Vec3b>(), end = bgrMatG.end<cv::Vec3b>(); it1 != end; ++it1, ++it2, ++it3) {
+        (*it3)[0] = (*it1)[0] ^ (*it2)[0];
+        (*it3)[1] = (*it1)[1] ^ (*it2)[1];
+        (*it3)[2] = (*it1)[2] ^ (*it2)[2];
+    }
+
+    QImage result;
+    cvMatToQImage(dst, result);
+    creerFenetre(QPixmap::fromImage(result), titre);
+}
+
 void MainWindow::afficherNOT (QLabel* label) {
     QImage image = label->pixmap()->toImage();
     QString titre = QString("NOT: ") + windowTitle[qHash(label)];
@@ -787,7 +1205,7 @@ void MainWindow::calculerNOT (QImage& argbImage, QString titre) {
     QImageTocvMat(argbImage, bgrMat);
 
     cv::MatIterator_<cv::Vec3b> it, end;
-    for( it = bgrMat.begin<cv::Vec3b>(), end = bgrMat.end<cv::Vec3b>(); it != end; ++it) {
+    for(it = bgrMat.begin<cv::Vec3b>(), end = bgrMat.end<cv::Vec3b>(); it != end; ++it) {
         (*it)[0] = ~(*it)[0];
         (*it)[1] = ~(*it)[1];
         (*it)[2] = ~(*it)[2];
@@ -813,7 +1231,7 @@ void MainWindow::calculerPlanBinaire (QImage& argbImage, QString titre, int bit)
     int masque = 255&(1<<(bit-1));
 
     cv::MatIterator_<cv::Vec3b> it, end;
-    for( it = bgrMat.begin<cv::Vec3b>(), end = bgrMat.end<cv::Vec3b>(); it != end; ++it) {
+    for(it = bgrMat.begin<cv::Vec3b>(), end = bgrMat.end<cv::Vec3b>(); it != end; ++it) {
         (*it)[0] = (*it)[0] & masque;
         (*it)[1] = (*it)[1] & masque;
         (*it)[2] = (*it)[2] & masque;
@@ -839,7 +1257,7 @@ void MainWindow::calculerQuantification (QImage& argbImage, QString titre, int b
     int masque = (255>>(8-bits))<<(8-bits); //suite de '1' repetee "bits" fois (11111..0)
 
     cv::MatIterator_<cv::Vec3b> it, end;
-    for( it = bgrMat.begin<cv::Vec3b>(), end = bgrMat.end<cv::Vec3b>(); it != end; ++it) {
+    for(it = bgrMat.begin<cv::Vec3b>(), end = bgrMat.end<cv::Vec3b>(); it != end; ++it) {
         (*it)[0] = (*it)[0] & masque;
         (*it)[1] = (*it)[1] & masque;
         (*it)[2] = (*it)[2] & masque;
@@ -919,7 +1337,7 @@ Mat& ScanImageAndReduceC(Mat& I, const uchar* const table)
 
     int i,j;
     uchar* p;
-    for( i = 0; i < nRows; ++i)
+    for(i = 0; i < nRows; ++i)
     {
         p = I.ptr<uchar>(i);
         for ( j = 0; j < nCols; ++j)
@@ -1053,7 +1471,86 @@ void MainWindow::calculerMoyenneur3x3 (QImage& argbImage, QString titre, cv::Poi
     cv::Mat bgrMat;
     QImageTocvMat(argbImage, bgrMat);
 
-    cv::blur (bgrMat, bgrMat, cv::Size(3,3), anchor, borderType);
+/*
+void cv::blur( InputArray src, OutputArray dst,
+           Size ksize, Point anchor, int borderType )
+{
+    boxFilter( src, dst, -1, ksize, anchor, true, borderType );
+}
+
+void cv::boxFilter( InputArray _src, OutputArray _dst, int ddepth,
+                Size ksize, Point anchor,
+                bool normalize, int borderType )
+{
+    Mat src = _src.getMat();
+    int sdepth = src.depth(), cn = src.channels();
+    if( ddepth < 0 )
+        ddepth = sdepth;
+    _dst.create( src.size(), CV_MAKETYPE(ddepth, cn) );
+    Mat dst = _dst.getMat();
+    if( borderType != BORDER_CONSTANT && normalize )
+    {
+        if( src.rows == 1 )
+            ksize.height = 1;
+        if( src.cols == 1 )
+            ksize.width = 1;
+    }
+#ifdef HAVE_TEGRA_OPTIMIZATION
+    if ( tegra::box(src, dst, ksize, anchor, normalize, borderType) )
+        return;
+#endif
+
+    Ptr<FilterEngine> f = createBoxFilter( src.type(), dst.type(),
+                        ksize, anchor, normalize, borderType );
+    f->apply( src, dst );
+}
+
+cv::Ptr<cv::FilterEngine> cv::createBoxFilter( int srcType, int dstType, Size ksize,
+                    Point anchor, bool normalize, int borderType )
+{
+    int sdepth = CV_MAT_DEPTH(srcType);
+    int cn = CV_MAT_CN(srcType), sumType = CV_64F;
+    if( sdepth <= CV_32S && (!normalize ||
+        ksize.width*ksize.height <= (sdepth == CV_8U ? (1<<23) :
+            sdepth == CV_16U ? (1 << 15) : (1 << 16))) )
+        sumType = CV_32S;
+    sumType = CV_MAKETYPE( sumType, cn );
+
+    Ptr<BaseRowFilter> rowFilter = getRowSumFilter(srcType, sumType, ksize.width, anchor.x );
+    Ptr<BaseColumnFilter> columnFilter = getColumnSumFilter(sumType,
+        dstType, ksize.height, anchor.y, normalize ? 1./(ksize.width*ksize.height) : 1);
+
+    return Ptr<FilterEngine>(new FilterEngine(Ptr<BaseFilter>(0), rowFilter, columnFilter,
+           srcType, dstType, sumType, borderType ));
+}
+*/
+ /*
+    int srcType = CV_8UC3, dstType = CV_8UC3;
+    cv::Size ksize = cv::Size(3, 3);
+    cv::Point _anchor = cv::Point(-1,-1);
+    bool normalize = true;
+    int sdepth = CV_MAT_DEPTH(srcType);
+    int cn = CV_MAT_CN(srcType), sumType = CV_64F;
+    if( sdepth <= CV_32S && (!normalize ||
+                             ksize.width*ksize.height <= (sdepth == CV_8U ? (1<<23) :
+                                                          sdepth == CV_16U ? (1 << 15) : (1 << 16))) )
+        sumType = CV_32S;
+    sumType = CV_MAKETYPE( sumType, cn );
+
+    cv::Ptr<cv::BaseRowFilter> rowFilter = cv::getRowSumFilter(srcType, sumType, ksize.width, _anchor.x );
+    cv::Ptr<cv::BaseColumnFilter> columnFilter = cv::getColumnSumFilter(sumType,
+                                                            dstType, ksize.height, _anchor.y, normalize ? 1./(ksize.width*ksize.height) : 1);
+    std::cerr << rowFilter;
+    std::cerr << columnFilter;
+*/
+    cv::Mat kern = (cv::Mat_<uchar>(3,3) <<
+    1, 1, 1,
+    1, 1, 1,
+    1, 1, 1);
+    cv::Mat res;
+    cv::filter2D(bgrMat, res, CV_16UC3, kern, anchor, 0, borderType);
+    bgrMat = res * 1.d/9;
+    bgrMat.convertTo(bgrMat, CV_8U, 1, 0);
 
     cvMatToQImage(bgrMat, argbImage);
     creerFenetre(QPixmap::fromImage(argbImage), titre);
@@ -1068,10 +1565,10 @@ t = ((double)getTickCount() - t)/getTickFrequency();
 void MainWindow::afficherMoyenneurNxN (QLabel* label) {
     QImage image = label->pixmap()->toImage();
     bool ok;
-    int N = QInputDialog::getInt(this, tr("Moyenneur nxn"), tr("N: "), 3, 3, 31, 1, &ok, 0);
+    int N = QInputDialog::getInt(this, tr("Moyenneur NxN séparable"), tr("N: "), 3, 3, 31, 1, &ok, 0);
     if (!ok) return;
     this->statusBar()->showMessage(tr("N = %1").arg(N));
-    QString titre = QString("Moyenneur %1x%2: ").arg(N).arg(N) + windowTitle[qHash(label)];
+    QString titre = QString("Moyenneur %1x%2 séparable: ").arg(N).arg(N) + windowTitle[qHash(label)];
     calculerMoyenneurNxN (image, titre,cv::Size (N, N), cv::Point (-1, -1), BORDER_TYPE);
 }
 
@@ -1087,13 +1584,15 @@ void MainWindow::calculerMoyenneurNxN (QImage& argbImage, QString titre, cv::Siz
 
 void MainWindow::afficherLaplacien (QLabel* label) {
     QImage image = label->pixmap()->toImage();
-    /*bool ok;
-    int seuil = QInputDialog::getInt(this, tr("Seuillage Simple"), tr("Seuil (entre 0 et 255): "), 127, 0, 255, 1, &ok, 0);
+    double gain;
+    int offset;
+    bool ok;
+    DoubleIntDialog d(this, QString("Laplacien"), QString("Gain (entre 1 et 30): "), 1, 1, 30, 2, QString("Offset (entre 0 et 255): "), 0, 0, 255, 1);
+    d.run(gain, offset, ok);
     if (!ok) return;
-    this->statusBar()->showMessage(tr("Seuil = %1").arg(seuil));
-    QString titre = QString("Seuillage(s=%1): ").arg(seuil) + windowTitle[qHash(label)];*/
-    QString titre = QString("Laplacien: ") + windowTitle[qHash(label)];
-    calculerLaplacien(image, titre, 3, 1, 0, BORDER_TYPE);
+    this->statusBar()->showMessage(tr("Laplacien (%1;%2): ").arg(gain).arg(offset));
+    QString titre = QString("Laplacien (%1;%2): ").arg(gain).arg(offset) + windowTitle[qHash(label)];
+    calculerLaplacien(image, titre, 3, gain, offset, BORDER_TYPE);
 }
 
 void MainWindow::calculerLaplacien (QImage& argbImage, QString titre, int ksize, double gain, double offset, int borderType) {
@@ -1217,47 +1716,20 @@ void MainWindow::calculerSeuillageManuelSimple (QImage& argbImage, QString titre
 
 void MainWindow::afficherSeuillageManuelDouble (QLabel* label) {
     QImage image = label->pixmap()->toImage();
-    /*QDialog d(this, Qt::WindowOkButtonHint | Qt::WindowCancelButtonHint);
-    //QAction a(QString("blah"),d);
-    //d.addAction(a);
-    d.show();//d.exec();
-    int x = d.result();*/
-    /*
-     *int 	getInt ( QWidget * parent, const QString & title, const QString & label, int value = 0, int min = -2147483647, int max = 2147483647, int step = 1, bool * ok = 0, Qt::WindowFlags flags = 0 )
-     bool ok;
-     int i = QInputDialog::getInt(this, tr("QInputDialog::getInteger()"),
-                                  tr("Percentage:"), 25, 0, 100, 1, &ok, 0);
-     if (ok)
-         integerLabel->setText(tr("%1%").arg(i));
-     */
+    int seuil1, seuil2;
     bool ok;
-    int seuil = QInputDialog::getInt(this, tr("Seuillage Double"), tr("Seuil (entre 0 et 255): "), 127, 0, 255, 1, &ok, 0);
+    IntIntDialog d(this, QString("Seuillage Double"), QString("Seuil Inférieur (entre 0 et 255): "), 80, 0, 255, 1, QString("Seuil Supérieur (entre 0 et 255): "), 240, 0, 255, 1);
+    d.run(seuil1, seuil2, ok);
     if (!ok) return;
-    this->statusBar()->showMessage(tr("Seuil = %1").arg(seuil));
-    QString titre = QString("Seuillage(%1): ").arg(seuil) + windowTitle[qHash(label)];
-    calculerSeuillageManuelDouble(image, titre, seuil, 255);
+    this->statusBar()->showMessage(tr("Seuillage Double Manuel(%1;%2): ").arg(seuil1).arg(seuil2));
+    QString titre = QString("Seuillage Double Manuel(%1;%2): ").arg(seuil1).arg(seuil2) + windowTitle[qHash(label)];
+    calculerSeuillageManuelDouble(image, titre, seuil1, seuil2, 0, 127, 255);
 }
-
-void MainWindow::calculerSeuillageManuelDouble (QImage& argbImage, QString titre, double seuil, double maxval) {
-    cv::Mat bgrMat;
-    QImageTocvMat(argbImage, bgrMat);
-
-/*
- *seuillage :
-cv::Mat thresholded;
-cv::threshold(image, thresholded, 60, 255, cv::THRESH_BINARY);
-cv::imwrite ("binary.bmp", thresholded);
-*/
 
 /*
  *cv::adaptiveThreshold(src,dst,double maxval,adaptativeMethod,thresholdType,int blockSize,double C)
- *cv::blur(src,dst,Size ksize,Point anchor = (-1,-1),borderType=BORDER_DEFAULT)
  *cv::Canny(src,dst_edges,double  threshold1,double threshold2,int apertureSize=3,bool L2gradient=false)
- *cv::CLAHE
- *cv::createCLAHE()
  *cv::createDerivFilter()
- *cv::createGaussianFilter()
- *cv::createHanningWindow()
  *cv::createLinearFilter()
  *cv::createMorphologyFilter()
  *cv::createSeparableLinearFilter()
@@ -1265,37 +1737,49 @@ cv::imwrite ("binary.bmp", thresholded);
  *cv::dft()
  *cv::erode(src,dst,i_kernel,Point anchor = (-1,-1),int iterations=1,border,const Scalar& borderValue=morphologyDefaultBorderValue)
  *cv::meanStdDev(src, mean, stddev, mask=noArray())
- *cv::medianBlur(src, dst, int ksize)
  *cv::Mahalanobis(src1, src2, icovar)
  *cv::Mahalonobis(src1, src2, icovar)
  *cv::Laplacian(src,dst,ddepth,int ksize=3,double scale=1,double delta=0,borderType=BORDER_DEFAULT)
  *cv::Scharr(src,dst,ddepth,int dx,int dy,int ksize=3,double scale=1,double delta=0,borderType=BORDER_DEFAULT)
  *cv::Sobel(src,dst,ddepth,int dx=0 ou 1,int dy=0 ou 1,int ksize=3,double scale=1,double delta=0,borderType=BORDER_DEFAULT)
  */
+void MainWindow::calculerSeuillageManuelDouble (QImage& argbImage, QString titre, double seuilBas, double seuilHaut, double minVal, double midVal, double maxVal) {
 
-    /*if (argbImage.isGrayscale()) {
-        cv::Mat gMat;
-        cv::cvtColor(bgrMat, gMat, CV_BGR2GRAY);
-        cv::Mat result (gMat.rows, gMat.cols, CV_8U);
-        cv::threshold(gMat, result, seuil, maxval, cv::THRESH_BINARY);
-        cv::cvtColor(result, bgrMat, CV_GRAY2BGR);
-    } else {
-        cv::threshold(bgrMat, bgrMat, seuil, maxval, cv::THRESH_BINARY);
-    }*/
+    cv::Mat bgrMat;
+    QImageTocvMat(argbImage, bgrMat);
 
-    cv::threshold(bgrMat, bgrMat, seuil, maxval, cv::THRESH_BINARY);
+/*
+    uchar lookup [256];
+    for(int i = 0; i < 256; i++)
+        lookup[i] = 255 - i;
+    cv::MatIterator_<cv::Vec3b> it, end;
+    for(it = bgrMat.begin<cv::Vec3b>(), end = bgrMat.end<cv::Vec3b>(); it != end; ++it) {
+        (*it)[0] = lookup[(*it)[0]];
+        (*it)[1] = lookup[(*it)[1]];
+        (*it)[2] = lookup[(*it)[2]];
+    }
+*/
+    cv::MatIterator_<cv::Vec3b> it, end;
+    for(it = bgrMat.begin<cv::Vec3b>(), end = bgrMat.end<cv::Vec3b>(); it != end; ++it) {
+        (*it)[0] = (*it)[0] < seuilBas ? minVal : (*it)[0] > seuilHaut ? maxVal : midVal;
+        (*it)[1] = (*it)[1] < seuilBas ? minVal : (*it)[1] > seuilHaut ? maxVal : midVal;
+        (*it)[2] = (*it)[2] < seuilBas ? minVal : (*it)[2] > seuilHaut ? maxVal : midVal;
+    }
+
     cvMatToQImage(bgrMat, argbImage);
     creerFenetre(QPixmap::fromImage(argbImage), titre);
 }
 
 void MainWindow::afficherSeuillageParHysteresis (QLabel* label) {
     QImage image = label->pixmap()->toImage();
-    /*bool ok;
-    int seuil = QInputDialog::getInt(this, tr("Seuillage Simple"), tr("Seuil (entre 0 et 255): "), 127, 0, 255, 1, &ok, 0);
+    int seuil1, seuil2;
+    bool ok;
+    IntIntDialog d(this, QString("Seuillage par Hystérésis"), QString("Seuil Inférieur (entre 0 et 255): "), 80, 0, 255, 1, QString("Seuil Supérieur (entre 0 et 255): "), 240, 0, 255, 1);
+    d.run(seuil1, seuil2, ok);
     if (!ok) return;
-    this->statusBar()->showMessage(tr("Seuil = %1").arg(seuil));*/
-    QString titre = QString("Seuillage par Hystérésis: ") + windowTitle[qHash(label)];
-    calculerSeuillageParHysteresis (image, titre, 80, 3 * 30, 3, true);///ratio seuilHaut/seuilBas preferablement entre 3:1 et 2:1
+    this->statusBar()->showMessage(tr("Seuillage par Hystérésis(%1;%2): ").arg(seuil1).arg(seuil2));
+    QString titre = QString("Seuillage par Hystérésis(%1;%2): ").arg(seuil1).arg(seuil2) + windowTitle[qHash(label)];
+    calculerSeuillageParHysteresis (image, titre, seuil1, seuil2, 3, true);///ratio seuilHaut/seuilBas preferablement entre 3:1 et 2:1
 }
 
 void MainWindow::calculerSeuillageParHysteresis (QImage& argbImage, QString titre, int seuilBas, int seuilHaut, int ksize, bool utiliserNormeL2) {
@@ -1317,13 +1801,15 @@ void MainWindow::calculerSeuillageParHysteresis (QImage& argbImage, QString titr
 
 void MainWindow::afficherGradientSobel (QLabel* label, TypeSobel type) {
     QImage image = label->pixmap()->toImage();
-    /*bool ok;
-    int seuil = QInputDialog::getInt(this, tr("Seuillage Simple"), tr("Seuil (entre 0 et 255): "), 127, 0, 255, 1, &ok, 0);
+    double gain;
+    int offset;
+    bool ok;
+    DoubleIntDialog d(this, QString("Gradient Sobel"), QString("Gain (entre 1 et 30): "), 1, 1, 30, 2, QString("Offset (entre 0 et 255): "), 0, 0, 255, 1);
+    d.run(gain, offset, ok);
     if (!ok) return;
-    this->statusBar()->showMessage(tr("Seuil = %1").arg(seuil));
-    QString titre = QString("Seuillage(%1): ").arg(seuil) + windowTitle[qHash(label)];*/
-    QString titre = QString("Sobel Gradient %1: ").arg(type == SOBEL_NORME ? "(Norme)" : type == SOBEL_X ? "X" : type == SOBEL_Y ? "Y" : "") + windowTitle[qHash(label)];
-    calculerGradientSobel (image, titre, type, 3, 1, 0, BORDER_TYPE);
+    this->statusBar()->showMessage(tr("Gradient Sobel %1(%2;%3): ").arg(type == SOBEL_NORME ? "[Norme]" : type == SOBEL_X ? "X" : type == SOBEL_Y ? "Y" : "").arg(gain).arg(offset));
+    QString titre = QString("Gradient Sobel %1(%2;%3): ").arg(type == SOBEL_NORME ? "[Norme]" : type == SOBEL_X ? "X" : type == SOBEL_Y ? "Y" : "").arg(gain).arg(offset) + windowTitle[qHash(label)];
+    calculerGradientSobel (image, titre, type, 3, gain, offset, BORDER_TYPE);
 }
 
 void MainWindow::calculerGradientSobel (QImage& argbImage, QString titre, TypeSobel type, int ksize, double gain, double offset, int borderType) {
@@ -1393,18 +1879,992 @@ void MainWindow::calculerGradientSobel (QImage& argbImage, QString titre, TypeSo
         cv::GaussianBlur(bgrMat, bgrMat, cv::Size(3,3), 0, 0, borderType);
         cv::Mat gMat;
         cv::cvtColor(bgrMat, gMat, CV_BGR2GRAY);
-        cv::Mat dst_x, dst_y, abs_dst_x, abs_dst_y, dst_total;
-        //DX
+        cv::Mat dst_x, dst_y, dst_total;
+        cv::Mat x, y, s;
+        ///d/dx
         dx = 1;
         dy = 0;
         cv::Sobel (gMat, dst_x, CV_16S, dx, dy, ksize, gain, offset, borderType);
-        cv::convertScaleAbs(dst_x, abs_dst_x);
-        //DY
+        dst_x.convertTo(x, CV_32F, 1.f, 0);
+        ///d/dy
         dx = 0;
         dy = 1;
         cv::Sobel (gMat, dst_y, CV_16S, dx, dy, ksize, gain, offset, borderType);
-        cv::convertScaleAbs(dst_y, abs_dst_y);
-        cv::addWeighted (abs_dst_x, 0.5, abs_dst_y, 0.5, 0, dst_total);
+        dst_y.convertTo(y, CV_32F, 1.f, 0);
+        /*cv::convertScaleAbs(dst_x, dst_x);
+        cv::convertScaleAbs(dst_y, dst_y);
+        cv::addWeighted (dst_x, 0.5, dst_y, 0.5, 0, dst_total);*/
+        //cv::imshow("Manhattan", dst_total);
+        x = x.mul(x);
+        y = y.mul(y);
+        s = x + y;
+        cv::sqrt(s, dst_total);
+        cv::normalize(dst_total, dst_total, 0, 1, CV_MINMAX);
+        dst_total.convertTo(dst_total, CV_8U, 255, 0);
+        //cv::imshow("Euclidean", dst_total);
+        cv::cvtColor(dst_total, bgrMat, CV_GRAY2BGR);
+    }
+    cvMatToQImage(bgrMat, argbImage);
+    creerFenetre(QPixmap::fromImage(argbImage), titre);
+}
+
+void MainWindow::afficherGradientPrewitt (QLabel* label, TypePrewitt type) {
+    QImage image = label->pixmap()->toImage();
+    double gain;
+    int offset;
+    bool ok;
+    DoubleIntDialog d(this, QString("Gradient Prewitt"), QString("Gain (entre 1 et 30): "), 1, 1, 30, 2, QString("Offset (entre 0 et 255): "), 0, 0, 255, 1);
+    d.run(gain, offset, ok);
+    if (!ok) return;
+    this->statusBar()->showMessage(tr("Gradient Prewitt %1(%2;%3): ").arg(type == PREWITT_NORME ? "[Norme]" : type == PREWITT_X ? "X" : type == PREWITT_Y ? "Y" : "").arg(gain).arg(offset));
+    QString titre = QString("Gradient Prewitt %1(%2;%3): ").arg(type == PREWITT_NORME ? "[Norme]" : type == PREWITT_X ? "X" : type == PREWITT_Y ? "Y" : "").arg(gain).arg(offset) + windowTitle[qHash(label)];
+    calculerGradientPrewitt (image, titre, type, 3, gain, offset, BORDER_TYPE);
+}
+
+/*
+    cv::Mat kern = (cv::Mat_<uchar>(3,3) <<
+    1, 1, 1,
+    1, 1, 1,
+    1, 1, 1);
+    cv::Mat res;
+    cv::filter2D(bgrMat, res, CV_16UC3, kern, anchor, 0, borderType);
+    bgrMat = res * 1.d/9;
+    bgrMat.convertTo(bgrMat, CV_8U, 1, 0);
+*/
+/*
+void cv::Scharr( InputArray _src, OutputArray _dst, int ddepth, int dx, int dy,
+                 double scale, double delta, int borderType )
+{
+    Mat src = _src.getMat();
+    if (ddepth < 0)
+        ddepth = src.depth();
+    _dst.create( src.size(), CV_MAKETYPE(ddepth, src.channels()) );
+    Mat dst = _dst.getMat();
+
+#ifdef HAVE_TEGRA_OPTIMIZATION
+    if (scale == 1.0 && delta == 0)
+        if (tegra::scharr(src, dst, dx, dy, borderType))
+            return;
+#endif
+
+#if defined (HAVE_IPP) && (IPP_VERSION_MAJOR >= 7)
+    if(dx < 2 && dy < 2 && src.channels() == 1 && borderType == 1)
+    {
+        if(IPPDerivScharr(src, dst, ddepth, dx, dy, scale))
+            return;
+    }
+#endif
+    int ktype = std::max(CV_32F, std::max(ddepth, src.depth()));
+
+    Mat kx, ky;
+    getScharrKernels( kx, ky, dx, dy, false, ktype );
+    if( scale != 1 )
+    {
+        // usually the smoothing part is the slowest to compute,
+        // so try to scale it instead of the faster differenciating part
+        if( dx == 0 )
+            kx *= scale;
+        else
+            ky *= scale;
+    }
+    sepFilter2D( src, dst, ddepth, kx, ky, Point(-1,-1), delta, borderType );
+}
+static void getScharrKernels( OutputArray _kx, OutputArray _ky,
+                              int dx, int dy, bool normalize, int ktype )
+{
+    const int ksize = 3;
+
+    CV_Assert( ktype == CV_32F || ktype == CV_64F );
+    _kx.create(ksize, 1, ktype, -1, true);
+    _ky.create(ksize, 1, ktype, -1, true);
+    Mat kx = _kx.getMat();
+    Mat ky = _ky.getMat();
+
+    CV_Assert( dx >= 0 && dy >= 0 && dx+dy == 1 );
+
+    for( int k = 0; k < 2; k++ )
+    {
+        Mat* kernel = k == 0 ? &kx : &ky;
+        int order = k == 0 ? dx : dy;
+        int kerI[3];
+
+        if( order == 0 )
+            kerI[0] = 3, kerI[1] = 10, kerI[2] = 3;
+        else if( order == 1 )
+            kerI[0] = -1, kerI[1] = 0, kerI[2] = 1;
+
+        Mat temp(kernel->rows, kernel->cols, CV_32S, &kerI[0]);
+        double scale = !normalize || order == 1 ? 1. : 1./32;
+        temp.convertTo(*kernel, ktype, scale);
+    }
+}
+
+
+static void getSobelKernels( OutputArray _kx, OutputArray _ky,
+                             int dx, int dy, int _ksize, bool normalize, int ktype )
+{
+    int i, j, ksizeX = _ksize, ksizeY = _ksize;
+    if( ksizeX == 1 && dx > 0 )
+        ksizeX = 3;
+    if( ksizeY == 1 && dy > 0 )
+        ksizeY = 3;
+
+    CV_Assert( ktype == CV_32F || ktype == CV_64F );
+
+    _kx.create(ksizeX, 1, ktype, -1, true);
+    _ky.create(ksizeY, 1, ktype, -1, true);
+    Mat kx = _kx.getMat();
+    Mat ky = _ky.getMat();
+
+    if( _ksize % 2 == 0 || _ksize > 31 )
+        CV_Error( CV_StsOutOfRange, "The kernel size must be odd and not larger than 31" );
+    vector<int> kerI(std::max(ksizeX, ksizeY) + 1);
+
+    CV_Assert( dx >= 0 && dy >= 0 && dx+dy > 0 );
+
+    for( int k = 0; k < 2; k++ )
+    {
+        Mat* kernel = k == 0 ? &kx : &ky;
+        int order = k == 0 ? dx : dy;
+        int ksize = k == 0 ? ksizeX : ksizeY;
+
+        CV_Assert( ksize > order );
+
+        if( ksize == 1 )
+            kerI[0] = 1;
+        else if( ksize == 3 )
+        {
+            if( order == 0 )
+                kerI[0] = 1, kerI[1] = 2, kerI[2] = 1;
+            else if( order == 1 )
+                kerI[0] = -1, kerI[1] = 0, kerI[2] = 1;
+            else
+                kerI[0] = 1, kerI[1] = -2, kerI[2] = 1;
+        }
+        else
+        {
+            int oldval, newval;
+            kerI[0] = 1;
+            for( i = 0; i < ksize; i++ )
+                kerI[i+1] = 0;
+
+            for( i = 0; i < ksize - order - 1; i++ )
+            {
+                oldval = kerI[0];
+                for( j = 1; j <= ksize; j++ )
+                {
+                    newval = kerI[j]+kerI[j-1];
+                    kerI[j-1] = oldval;
+                    oldval = newval;
+                }
+            }
+
+            for( i = 0; i < order; i++ )
+            {
+                oldval = -kerI[0];
+                for( j = 1; j <= ksize; j++ )
+                {
+                    newval = kerI[j-1] - kerI[j];
+                    kerI[j-1] = oldval;
+                    oldval = newval;
+                }
+            }
+        }
+
+        Mat temp(kernel->rows, kernel->cols, CV_32S, &kerI[0]);
+        double scale = !normalize ? 1. : 1./(1 << (ksize-order-1));
+        temp.convertTo(*kernel, ktype, scale);
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void icvSepConvSmall3_32f( float* src, int src_step, float* dst, int dst_step,
+            CvSize src_size, const float* kx, const float* ky, float* buffer )
+{
+    int  dst_width, buffer_step = 0;
+    int  x, y;
+    bool fast_kx = true, fast_ky = true;
+
+    assert( src && dst && src_size.width > 2 && src_size.height > 2 &&
+            (src_step & 3) == 0 && (dst_step & 3) == 0 &&
+            (kx || ky) && (buffer || !kx || !ky));
+
+    src_step /= sizeof(src[0]);
+    dst_step /= sizeof(dst[0]);
+
+    dst_width = src_size.width - 2;
+
+    if( !kx )
+    {
+        \* set vars, so that vertical convolution
+           will write results into destination ROI and
+           horizontal convolution won't run *\
+        src_size.width = dst_width;
+        buffer_step = dst_step;
+        buffer = dst;
+        dst_width = 0;
+    }
+    else
+        fast_kx = kx[1] == 0.f && kx[0] == -kx[2] && kx[0] == -1.f;
+
+    assert( src_step >= src_size.width && dst_step >= dst_width );
+
+    src_size.height -= 2;
+    if( !ky )
+    {
+        \* set vars, so that vertical convolution won't run and
+           horizontal convolution will write results into destination ROI *\
+        src_size.height += 2;
+        buffer_step = src_step;
+        buffer = src;
+        src_size.width = 0;
+    }
+    else
+        fast_ky = ky[1] == 0.f && ky[0] == -ky[2] && ky[0] == -1.f;
+
+    for( y = 0; y < src_size.height; y++, src += src_step,
+                                          dst += dst_step,
+                                          buffer += buffer_step )
+    {
+        float* src2 = src + src_step;
+        float* src3 = src + src_step*2;
+        if( fast_ky )
+            for( x = 0; x < src_size.width; x++ )
+            {
+                buffer[x] = (float)(src3[x] - src[x]);
+            }
+        else
+            for( x = 0; x < src_size.width; x++ )
+            {
+                buffer[x] = (float)(ky[0]*src[x] + ky[1]*src2[x] + ky[2]*src3[x]);
+            }
+
+        if( fast_kx )
+            for( x = 0; x < dst_width; x++ )
+            {
+                dst[x] = (float)(buffer[x+2] - buffer[x]);
+            }
+        else
+            for( x = 0; x < dst_width; x++ )
+            {
+                dst[x] = (float)(kx[0]*buffer[x] + kx[1]*buffer[x+1] + kx[2]*buffer[x+2]);
+            }
+    }
+}
+
+
+\****************************************************************************************\
+                             Sobel & Scharr Derivative Filters
+\****************************************************************************************\
+
+namespace cv
+{
+
+static void getScharrKernels( OutputArray _kx, OutputArray _ky,
+                              int dx, int dy, bool normalize, int ktype )
+{
+    const int ksize = 3;
+
+    CV_Assert( ktype == CV_32F || ktype == CV_64F );
+    _kx.create(ksize, 1, ktype, -1, true);
+    _ky.create(ksize, 1, ktype, -1, true);
+    Mat kx = _kx.getMat();
+    Mat ky = _ky.getMat();
+
+    CV_Assert( dx >= 0 && dy >= 0 && dx+dy == 1 );
+
+    for( int k = 0; k < 2; k++ )
+    {
+        Mat* kernel = k == 0 ? &kx : &ky;
+        int order = k == 0 ? dx : dy;
+        int kerI[3];
+
+        if( order == 0 )
+            kerI[0] = 3, kerI[1] = 10, kerI[2] = 3;
+        else if( order == 1 )
+            kerI[0] = -1, kerI[1] = 0, kerI[2] = 1;
+
+        Mat temp(kernel->rows, kernel->cols, CV_32S, &kerI[0]);
+        double scale = !normalize || order == 1 ? 1. : 1./32;
+        temp.convertTo(*kernel, ktype, scale);
+    }
+}
+
+
+static void getSobelKernels( OutputArray _kx, OutputArray _ky,
+                             int dx, int dy, int _ksize, bool normalize, int ktype )
+{
+    int i, j, ksizeX = _ksize, ksizeY = _ksize;
+    if( ksizeX == 1 && dx > 0 )
+        ksizeX = 3;
+    if( ksizeY == 1 && dy > 0 )
+        ksizeY = 3;
+
+    CV_Assert( ktype == CV_32F || ktype == CV_64F );
+
+    _kx.create(ksizeX, 1, ktype, -1, true);
+    _ky.create(ksizeY, 1, ktype, -1, true);
+    Mat kx = _kx.getMat();
+    Mat ky = _ky.getMat();
+
+    if( _ksize % 2 == 0 || _ksize > 31 )
+        CV_Error( CV_StsOutOfRange, "The kernel size must be odd and not larger than 31" );
+    vector<int> kerI(std::max(ksizeX, ksizeY) + 1);
+
+    CV_Assert( dx >= 0 && dy >= 0 && dx+dy > 0 );
+
+    for( int k = 0; k < 2; k++ )
+    {
+        Mat* kernel = k == 0 ? &kx : &ky;
+        int order = k == 0 ? dx : dy;
+        int ksize = k == 0 ? ksizeX : ksizeY;
+
+        CV_Assert( ksize > order );
+
+        if( ksize == 1 )
+            kerI[0] = 1;
+        else if( ksize == 3 )
+        {
+            if( order == 0 )
+                kerI[0] = 1, kerI[1] = 2, kerI[2] = 1;
+            else if( order == 1 )
+                kerI[0] = -1, kerI[1] = 0, kerI[2] = 1;
+            else
+                kerI[0] = 1, kerI[1] = -2, kerI[2] = 1;
+        }
+        else
+        {
+            int oldval, newval;
+            kerI[0] = 1;
+            for( i = 0; i < ksize; i++ )
+                kerI[i+1] = 0;
+
+            for( i = 0; i < ksize - order - 1; i++ )
+            {
+                oldval = kerI[0];
+                for( j = 1; j <= ksize; j++ )
+                {
+                    newval = kerI[j]+kerI[j-1];
+                    kerI[j-1] = oldval;
+                    oldval = newval;
+                }
+            }
+
+            for( i = 0; i < order; i++ )
+            {
+                oldval = -kerI[0];
+                for( j = 1; j <= ksize; j++ )
+                {
+                    newval = kerI[j-1] - kerI[j];
+                    kerI[j-1] = oldval;
+                    oldval = newval;
+                }
+            }
+        }
+
+        Mat temp(kernel->rows, kernel->cols, CV_32S, &kerI[0]);
+        double scale = !normalize ? 1. : 1./(1 << (ksize-order-1));
+        temp.convertTo(*kernel, ktype, scale);
+    }
+}
+
+}
+
+void cv::getDerivKernels( OutputArray kx, OutputArray ky, int dx, int dy,
+                          int ksize, bool normalize, int ktype )
+{
+    if( ksize <= 0 )
+        getScharrKernels( kx, ky, dx, dy, normalize, ktype );
+    else
+        getSobelKernels( kx, ky, dx, dy, ksize, normalize, ktype );
+}
+
+
+cv::Ptr<cv::FilterEngine> cv::createDerivFilter(int srcType, int dstType,
+                                                int dx, int dy, int ksize, int borderType )
+{
+    Mat kx, ky;
+    getDerivKernels( kx, ky, dx, dy, ksize, false, CV_32F );
+    return createSeparableLinearFilter(srcType, dstType,
+        kx, ky, Point(-1,-1), 0, borderType );
+}
+
+#if defined (HAVE_IPP) && (IPP_VERSION_MAJOR >= 7)
+
+namespace cv
+{
+
+static bool IPPDerivScharr(const Mat& src, Mat& dst, int ddepth, int dx, int dy, double scale)
+{
+   int bufSize = 0;
+   cv::AutoBuffer<char> buffer;
+   IppiSize roi = ippiSize(src.cols, src.rows);
+
+   if( ddepth < 0 )
+     ddepth = src.depth();
+
+   dst.create( src.size(), CV_MAKETYPE(ddepth, src.channels()) );
+
+   switch(src.type())
+   {
+      case CV_8U:
+         {
+            if(scale != 1)
+                return false;
+
+            switch(dst.type())
+            {
+               case CV_16S:
+               {
+                  if((dx == 1) && (dy == 0))
+                  {
+                     ippiFilterScharrVertGetBufferSize_8u16s_C1R(roi,&bufSize);
+                     buffer.allocate(bufSize);
+
+                     ippiFilterScharrVertBorder_8u16s_C1R((const Ipp8u*)src.data, src.step,
+                        (Ipp16s*)dst.data, dst.step, roi, ippBorderRepl, 0, (Ipp8u*)(char*)buffer);
+
+                     return true;
+                  }
+
+                  if((dx == 0) && (dy == 1))
+                  {
+                     ippiFilterScharrHorizGetBufferSize_8u16s_C1R(roi,&bufSize);
+                     buffer.allocate(bufSize);
+
+                     ippiFilterScharrHorizBorder_8u16s_C1R((const Ipp8u*)src.data, src.step,
+                        (Ipp16s*)dst.data, dst.step, roi, ippBorderRepl, 0, (Ipp8u*)(char*)buffer);
+
+                     return true;
+                  }
+               }
+
+               default:
+                  return false;
+            }
+         }
+
+      case CV_32F:
+         {
+            switch(dst.type())
+            {
+               case CV_32F:
+               if((dx == 1) && (dy == 0))
+               {
+                  ippiFilterScharrVertGetBufferSize_32f_C1R(ippiSize(src.cols, src.rows),&bufSize);
+                  buffer.allocate(bufSize);
+
+                  ippiFilterScharrVertBorder_32f_C1R((const Ipp32f*)src.data, src.step,
+                     (Ipp32f*)dst.data, dst.step, ippiSize(src.cols, src.rows),
+                                            ippBorderRepl, 0, (Ipp8u*)(char*)buffer);
+                  if(scale != 1)
+                     \* IPP is fast, so MulC produce very little perf degradation *\
+                     ippiMulC_32f_C1IR((Ipp32f)scale,(Ipp32f*)dst.data,dst.step,ippiSize(dst.cols*dst.channels(),dst.rows));
+
+                  return true;
+               }
+
+               if((dx == 0) && (dy == 1))
+               {
+                  ippiFilterScharrHorizGetBufferSize_32f_C1R(ippiSize(src.cols, src.rows),&bufSize);
+                  buffer.allocate(bufSize);
+
+                  ippiFilterScharrHorizBorder_32f_C1R((const Ipp32f*)src.data, src.step,
+                     (Ipp32f*)dst.data, dst.step, ippiSize(src.cols, src.rows),
+                                            ippBorderRepl, 0, (Ipp8u*)(char*)buffer);
+                  if(scale != 1)
+                     ippiMulC_32f_C1IR((Ipp32f)scale,(Ipp32f *)dst.data,dst.step,ippiSize(dst.cols*dst.channels(),dst.rows));
+
+                  return true;
+               }
+
+               default:
+                  return false;
+            }
+         }
+
+      default:
+         return false;
+   }
+}
+
+
+static bool IPPDeriv(const Mat& src, Mat& dst, int ddepth, int dx, int dy, int ksize, double scale)
+{
+   int bufSize = 0;
+   cv::AutoBuffer<char> buffer;
+
+   if(ksize == 3 || ksize == 5)
+   {
+      if( ddepth < 0 )
+          ddepth = src.depth();
+
+      if(src.type() == CV_8U && dst.type() == CV_16S && scale == 1)
+      {
+         if((dx == 1) && (dy == 0))
+         {
+            ippiFilterSobelNegVertGetBufferSize_8u16s_C1R(ippiSize(src.cols, src.rows), (IppiMaskSize)(ksize*10+ksize),&bufSize);
+            buffer.allocate(bufSize);
+
+            ippiFilterSobelNegVertBorder_8u16s_C1R((const Ipp8u*)src.data, src.step,
+               (Ipp16s*)dst.data, dst.step, ippiSize(src.cols, src.rows), (IppiMaskSize)(ksize*10+ksize),
+                                      ippBorderRepl, 0, (Ipp8u*)(char*)buffer);
+            return true;
+         }
+
+         if((dx == 0) && (dy == 1))
+         {
+            ippiFilterSobelHorizGetBufferSize_8u16s_C1R(ippiSize(src.cols, src.rows), (IppiMaskSize)(ksize*10+ksize),&bufSize);
+            buffer.allocate(bufSize);
+
+            ippiFilterSobelHorizBorder_8u16s_C1R((const Ipp8u*)src.data, src.step,
+               (Ipp16s*)dst.data, dst.step, ippiSize(src.cols, src.rows), (IppiMaskSize)(ksize*10+ksize),
+                                      ippBorderRepl, 0, (Ipp8u*)(char*)buffer);
+
+            return true;
+         }
+
+         if((dx == 2) && (dy == 0))
+         {
+            ippiFilterSobelVertSecondGetBufferSize_8u16s_C1R(ippiSize(src.cols, src.rows), (IppiMaskSize)(ksize*10+ksize),&bufSize);
+            buffer.allocate(bufSize);
+
+            ippiFilterSobelVertSecondBorder_8u16s_C1R((const Ipp8u*)src.data, src.step,
+               (Ipp16s*)dst.data, dst.step, ippiSize(src.cols, src.rows), (IppiMaskSize)(ksize*10+ksize),
+                                      ippBorderRepl, 0, (Ipp8u*)(char*)buffer);
+
+            return true;
+         }
+
+         if((dx == 0) && (dy == 2))
+         {
+            ippiFilterSobelHorizSecondGetBufferSize_8u16s_C1R(ippiSize(src.cols, src.rows), (IppiMaskSize)(ksize*10+ksize),&bufSize);
+            buffer.allocate(bufSize);
+
+            ippiFilterSobelHorizSecondBorder_8u16s_C1R((const Ipp8u*)src.data, src.step,
+               (Ipp16s*)dst.data, dst.step, ippiSize(src.cols, src.rows), (IppiMaskSize)(ksize*10+ksize),
+                                      ippBorderRepl, 0, (Ipp8u*)(char*)buffer);
+
+            return true;
+         }
+      }
+
+      if(src.type() == CV_32F && dst.type() == CV_32F)
+      {
+         if((dx == 1) && (dy == 0))
+         {
+            ippiFilterSobelNegVertGetBufferSize_32f_C1R(ippiSize(src.cols, src.rows), (IppiMaskSize)(ksize*10+ksize),&bufSize);
+            buffer.allocate(bufSize);
+
+            ippiFilterSobelNegVertBorder_32f_C1R((const Ipp32f*)src.data, src.step,
+               (Ipp32f*)dst.data, dst.step, ippiSize(src.cols, src.rows), (IppiMaskSize)(ksize*10+ksize),
+                                      ippBorderRepl, 0, (Ipp8u*)(char*)buffer);
+            if(scale != 1)
+               ippiMulC_32f_C1IR((Ipp32f)scale,(Ipp32f *)dst.data,dst.step,ippiSize(dst.cols*dst.channels(),dst.rows));
+
+            return true;
+         }
+
+         if((dx == 0) && (dy == 1))
+         {
+            ippiFilterSobelHorizGetBufferSize_32f_C1R(ippiSize(src.cols, src.rows), (IppiMaskSize)(ksize*10+ksize),&bufSize);
+            buffer.allocate(bufSize);
+
+            ippiFilterSobelHorizBorder_32f_C1R((const Ipp32f*)src.data, src.step,
+               (Ipp32f*)dst.data, dst.step, ippiSize(src.cols, src.rows), (IppiMaskSize)(ksize*10+ksize),
+                                      ippBorderRepl, 0, (Ipp8u*)(char*)buffer);
+            if(scale != 1)
+               ippiMulC_32f_C1IR((Ipp32f)scale,(Ipp32f *)dst.data,dst.step,ippiSize(dst.cols*dst.channels(),dst.rows));
+
+            return true;
+         }
+
+         if((dx == 2) && (dy == 0))
+         {
+            ippiFilterSobelVertSecondGetBufferSize_32f_C1R(ippiSize(src.cols, src.rows), (IppiMaskSize)(ksize*10+ksize),&bufSize);
+            buffer.allocate(bufSize);
+
+            ippiFilterSobelVertSecondBorder_32f_C1R((const Ipp32f*)src.data, src.step,
+               (Ipp32f*)dst.data, dst.step, ippiSize(src.cols, src.rows), (IppiMaskSize)(ksize*10+ksize),
+                                      ippBorderRepl, 0, (Ipp8u*)(char*)buffer);
+            if(scale != 1)
+               ippiMulC_32f_C1IR((Ipp32f)scale,(Ipp32f *)dst.data,dst.step,ippiSize(dst.cols*dst.channels(),dst.rows));
+
+            return true;
+         }
+
+         if((dx == 0) && (dy == 2))
+         {
+            ippiFilterSobelHorizSecondGetBufferSize_32f_C1R(ippiSize(src.cols, src.rows), (IppiMaskSize)(ksize*10+ksize),&bufSize);
+            buffer.allocate(bufSize);
+
+            ippiFilterSobelHorizSecondBorder_32f_C1R((const Ipp32f*)src.data, src.step,
+               (Ipp32f*)dst.data, dst.step, ippiSize(src.cols, src.rows), (IppiMaskSize)(ksize*10+ksize),
+                                      ippBorderRepl, 0, (Ipp8u*)(char*)buffer);
+            if(scale != 1)
+               ippiMulC_32f_C1IR((Ipp32f)scale,(Ipp32f *)dst.data,dst.step,ippiSize(dst.cols*dst.channels(),dst.rows));
+
+            return true;
+         }
+      }
+   }
+
+   if(ksize <= 0)
+      return IPPDerivScharr(src, dst, ddepth, dx, dy, scale);
+
+   return false;
+}
+
+}
+
+#endif
+
+void cv::Sobel( InputArray _src, OutputArray _dst, int ddepth, int dx, int dy,
+                int ksize, double scale, double delta, int borderType )
+{
+    Mat src = _src.getMat();
+    if (ddepth < 0)
+        ddepth = src.depth();
+    _dst.create( src.size(), CV_MAKETYPE(ddepth, src.channels()) );
+    Mat dst = _dst.getMat();
+
+#ifdef HAVE_TEGRA_OPTIMIZATION
+    if (scale == 1.0 && delta == 0)
+    {
+        if (ksize == 3 && tegra::sobel3x3(src, dst, dx, dy, borderType))
+            return;
+        if (ksize == -1 && tegra::scharr(src, dst, dx, dy, borderType))
+            return;
+    }
+#endif
+
+#if defined (HAVE_IPP) && (IPP_VERSION_MAJOR >= 7)
+    if(dx < 3 && dy < 3 && src.channels() == 1 && borderType == 1)
+    {
+        if(IPPDeriv(src, dst, ddepth, dx, dy, ksize,scale))
+            return;
+    }
+#endif
+    int ktype = std::max(CV_32F, std::max(ddepth, src.depth()));
+
+    Mat kx, ky;
+    getDerivKernels( kx, ky, dx, dy, ksize, false, ktype );
+    if( scale != 1 )
+    {
+        // usually the smoothing part is the slowest to compute,
+        // so try to scale it instead of the faster differenciating part
+        if( dx == 0 )
+            kx *= scale;
+        else
+            ky *= scale;
+    }
+    sepFilter2D( src, dst, ddepth, kx, ky, Point(-1,-1), delta, borderType );
+}
+
+
+void cv::Scharr( InputArray _src, OutputArray _dst, int ddepth, int dx, int dy,
+                 double scale, double delta, int borderType )
+{
+    Mat src = _src.getMat();
+    if (ddepth < 0)
+        ddepth = src.depth();
+    _dst.create( src.size(), CV_MAKETYPE(ddepth, src.channels()) );
+    Mat dst = _dst.getMat();
+
+#ifdef HAVE_TEGRA_OPTIMIZATION
+    if (scale == 1.0 && delta == 0)
+        if (tegra::scharr(src, dst, dx, dy, borderType))
+            return;
+#endif
+
+#if defined (HAVE_IPP) && (IPP_VERSION_MAJOR >= 7)
+    if(dx < 2 && dy < 2 && src.channels() == 1 && borderType == 1)
+    {
+        if(IPPDerivScharr(src, dst, ddepth, dx, dy, scale))
+            return;
+    }
+#endif
+    int ktype = std::max(CV_32F, std::max(ddepth, src.depth()));
+
+    Mat kx, ky;
+    getScharrKernels( kx, ky, dx, dy, false, ktype );
+    if( scale != 1 )
+    {
+        // usually the smoothing part is the slowest to compute,
+        // so try to scale it instead of the faster differenciating part
+        if( dx == 0 )
+            kx *= scale;
+        else
+            ky *= scale;
+    }
+    sepFilter2D( src, dst, ddepth, kx, ky, Point(-1,-1), delta, borderType );
+}
+
+
+void cv::Laplacian( InputArray _src, OutputArray _dst, int ddepth, int ksize,
+                    double scale, double delta, int borderType )
+{
+    Mat src = _src.getMat();
+    if (ddepth < 0)
+        ddepth = src.depth();
+    _dst.create( src.size(), CV_MAKETYPE(ddepth, src.channels()) );
+    Mat dst = _dst.getMat();
+
+#ifdef HAVE_TEGRA_OPTIMIZATION
+    if (scale == 1.0 && delta == 0)
+    {
+        if (ksize == 1 && tegra::laplace1(src, dst, borderType))
+            return;
+        if (ksize == 3 && tegra::laplace3(src, dst, borderType))
+            return;
+        if (ksize == 5 && tegra::laplace5(src, dst, borderType))
+            return;
+    }
+#endif
+
+    if( ksize == 1 || ksize == 3 )
+    {
+        float K[2][9] =
+        {{0, 1, 0, 1, -4, 1, 0, 1, 0},
+         {2, 0, 2, 0, -8, 0, 2, 0, 2}};
+        Mat kernel(3, 3, CV_32F, K[ksize == 3]);
+        if( scale != 1 )
+            kernel *= scale;
+        filter2D( src, dst, ddepth, kernel, Point(-1,-1), delta, borderType );
+    }
+    else
+    {
+        const size_t STRIPE_SIZE = 1 << 14;
+
+        int depth = src.depth();
+        int ktype = std::max(CV_32F, std::max(ddepth, depth));
+        int wdepth = depth == CV_8U && ksize <= 5 ? CV_16S : depth <= CV_32F ? CV_32F : CV_64F;
+        int wtype = CV_MAKETYPE(wdepth, src.channels());
+        Mat kd, ks;
+        getSobelKernels( kd, ks, 2, 0, ksize, false, ktype );
+        if( ddepth < 0 )
+            ddepth = src.depth();
+        int dtype = CV_MAKETYPE(ddepth, src.channels());
+
+        int dy0 = std::min(std::max((int)(STRIPE_SIZE/(getElemSize(src.type())*src.cols)), 1), src.rows);
+        Ptr<FilterEngine> fx = createSeparableLinearFilter(src.type(),
+            wtype, kd, ks, Point(-1,-1), 0, borderType, borderType, Scalar() );
+        Ptr<FilterEngine> fy = createSeparableLinearFilter(src.type(),
+            wtype, ks, kd, Point(-1,-1), 0, borderType, borderType, Scalar() );
+
+        int y = fx->start(src), dsty = 0, dy = 0;
+        fy->start(src);
+        const uchar* sptr = src.data + y*src.step;
+
+        Mat d2x( dy0 + kd.rows - 1, src.cols, wtype );
+        Mat d2y( dy0 + kd.rows - 1, src.cols, wtype );
+
+        for( ; dsty < src.rows; sptr += dy0*src.step, dsty += dy )
+        {
+            fx->proceed( sptr, (int)src.step, dy0, d2x.data, (int)d2x.step );
+            dy = fy->proceed( sptr, (int)src.step, dy0, d2y.data, (int)d2y.step );
+            if( dy > 0 )
+            {
+                Mat dstripe = dst.rowRange(dsty, dsty + dy);
+                d2x.rows = d2y.rows = dy; // modify the headers, which should work
+                d2x += d2y;
+                d2x.convertTo( dstripe, dtype, scale, delta );
+            }
+        }
+    }
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+CV_IMPL void
+cvSobel( const void* srcarr, void* dstarr, int dx, int dy, int aperture_size )
+{
+    cv::Mat src = cv::cvarrToMat(srcarr), dst = cv::cvarrToMat(dstarr);
+
+    CV_Assert( src.size() == dst.size() && src.channels() == dst.channels() );
+
+    cv::Sobel( src, dst, dst.depth(), dx, dy, aperture_size, 1, 0, cv::BORDER_REPLICATE );
+    if( CV_IS_IMAGE(srcarr) && ((IplImage*)srcarr)->origin && dy % 2 != 0 )
+        dst *= -1;
+}
+
+
+CV_IMPL void
+cvLaplace( const void* srcarr, void* dstarr, int aperture_size )
+{
+    cv::Mat src = cv::cvarrToMat(srcarr), dst = cv::cvarrToMat(dstarr);
+
+    CV_Assert( src.size() == dst.size() && src.channels() == dst.channels() );
+
+    cv::Laplacian( src, dst, dst.depth(), aperture_size, 1, 0, cv::BORDER_REPLICATE );
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//void cv::Scharr(InputArray _src, OutputArray _dst, int ddepth, int dx, int dy, double scale, double delta, int borderType)
+    / *
+    Mat src = _src.getMat();
+    if (ddepth < 0)
+        ddepth = src.depth();
+    _dst.create( src.size(), CV_MAKETYPE(ddepth, src.channels()) );
+    Mat dst = _dst.getMat();
+    * /
+    cv::Mat src = ((cv::InputArray)gMat).getMat();
+    if (ddepth < 0)
+        ddepth = src.depth();
+    ((cv::OutputArray)_dst).create(src.size(), CV_MAKETYPE(ddepth, src.channels()));
+    cv::Mat dst = ((cv::OutputArray)_dst).getMat();
+
+    int ktype = std::max(CV_32F, std::max(ddepth, src.depth()));
+
+    cv::Mat kx, ky;
+    //getScharrKernels(_kx, _ky, dx, dy, false, ktype);
+    //static void getScharrKernels(OutputArray _kx, OutputArray _ky, int dx, int dy, bool normalize, int ktype) {
+    //const int ksize = 3;
+
+    CV_Assert(ktype == CV_32F || ktype == CV_64F);
+    ((cv::OutputArray)kx).create(ksize, 1, ktype, -1, true);
+    ((cv::OutputArray)ky).create(ksize, 1, ktype, -1, true);
+    cv::Mat _kx = ((cv::InputArray)kx).getMat();
+    cv::Mat _ky = ((cv::InputArray)ky).getMat();
+
+    CV_Assert(dx >= 0 && dy >= 0 && dx+dy == 1);
+
+    for(int k = 0; k < 2; k++) {
+        cv::Mat* kernel = k == 0 ? &_kx : &_ky;
+        int order = k == 0 ? dx : dy;
+        int kerI[3];
+
+        if( order == 0 )
+            kerI[0] = 1, kerI[1] = 1, kerI[2] = 1;
+        else if( order == 1 )
+            kerI[0] = -1, kerI[1] = 0, kerI[2] = 1;
+
+        cv::Mat temp(kernel->rows, kernel->cols, CV_32S, &kerI[0]);
+        double scale = !true || order == 1 ? 1. : 1./32;
+        temp.convertTo(*kernel, ktype, scale);
+    }
+    //}
+    if(gain != 1) {
+        // usually the smoothing part is the slowest to compute,
+        // so try to scale it instead of the faster differenciating part
+        if(dx == 0)
+            kx *= gain;
+        else
+            ky *= gain;
+    }
+    cv::sepFilter2D(src, dst, ddepth, kx, ky, cv::Point(-1,-1), offset, borderType);
+*/
+
+void MainWindow::calculerGradientPrewitt (QImage& argbImage, QString titre, TypePrewitt type, int ksize, double gain, double offset, int borderType) {
+    cv::Mat bgrMat;
+    QImageTocvMat(argbImage, bgrMat);
+
+    /*cv::GaussianBlur(bgrMat, bgrMat, cv::Size(3,3), 0, 0, borderType);
+    cv::Mat gMat;
+    cv::cvtColor(bgrMat, gMat, CV_BGR2GRAY);
+
+
+
+    cv::Mat _dst;
+    int dx = 1;
+    int dy = 0;
+    Prewitt(gMat, _dst, CV_16S, dx, dy, gain*25, offset, borderType);
+
+
+
+    cv::convertScaleAbs(_dst, bgrMat);
+    //normalize(const Mat& src, Mat& dst, double alpha=1, double beta=0, int normType=NORM_L2, int rtype=-1, const Mat& mask=Mat())
+    if(type==PREWITT_X) cv::normalize(bgrMat, bgrMat, 0, 255, CV_MINMAX, -1, cv::Mat());
+    cv::cvtColor(bgrMat, bgrMat, CV_GRAY2BGR);*/
+
+
+
+
+
+
+    int dx, dy;
+    if (type == PREWITT_X || type == PREWITT_Y) {
+        if (type == PREWITT_X) {
+            dx = 1;
+            dy = 0;
+        } else {
+            dx = 0;
+            dy = 1;
+        }
+        cv::GaussianBlur(bgrMat, bgrMat, cv::Size(3,3), 0, 0, borderType);
+        cv::Mat gMat;
+        cv::cvtColor(bgrMat, gMat, CV_BGR2GRAY);
+        cv::Mat dst;
+        //cv::Sobel (gMat, dst, CV_16S, dx, dy, ksize, gain, offset, borderType);
+        Prewitt(gMat, dst, CV_16S, dx, dy, gain*25, offset, borderType);
+        cv::convertScaleAbs(dst, bgrMat);
+        //cv::normalize(bgrMat, bgrMat, 0, 255, CV_MINMAX, -1, cv::Mat());
+        cv::cvtColor(bgrMat, bgrMat, CV_GRAY2BGR);
+    } else if (type == PREWITT_NORME) {
+        cv::GaussianBlur(bgrMat, bgrMat, cv::Size(3,3), 0, 0, borderType);
+        cv::Mat gMat;
+        cv::cvtColor(bgrMat, gMat, CV_BGR2GRAY);
+        cv::Mat dst_x, dst_y, dst_total;
+        cv::Mat x, y, s;
+        ///d/dx
+        dx = 1;
+        dy = 0;
+        //cv::Sobel (gMat, dst_x, CV_16S, dx, dy, ksize, gain, offset, borderType);
+        Prewitt(gMat, dst_x, CV_16S, dx, dy, gain, offset, borderType);
+        dst_x.convertTo(x, CV_32F, 1.f, 0);
+        ///d/dy
+        dx = 0;
+        dy = 1;
+        //cv::Sobel (gMat, dst_y, CV_16S, dx, dy, ksize, gain, offset, borderType);
+        Prewitt(gMat, dst_y, CV_16S, dx, dy, gain, offset, borderType);
+        dst_y.convertTo(y, CV_32F, 1.f, 0);
+        //cv::convertScaleAbs(dst_x, dst_x);
+        //cv::convertScaleAbs(dst_y, dst_y);
+        //cv::addWeighted (dst_x, 0.5, dst_y, 0.5, 0, dst_total);
+        //cv::imshow("Manhattan", dst_total);
+        x = x.mul(x);
+        y = y.mul(y);
+        s = x + y;
+        cv::sqrt(s, dst_total);
+        cv::normalize(dst_total, dst_total, 0, 1, CV_MINMAX);
+        dst_total.convertTo(dst_total, CV_8U, 255, 0);
+        //cv::imshow("Euclidean", dst_total);
         cv::cvtColor(dst_total, bgrMat, CV_GRAY2BGR);
     }
     cvMatToQImage(bgrMat, argbImage);
@@ -1474,6 +2934,27 @@ void MainWindow::on_actionNegatif_triggered () {
     afficherHistogrammeNegatif (label);
 }
 
+void MainWindow::on_actionCalibration_triggered () {
+    QLabel* label = getFocusedLabel();
+    if (label == NULL)
+        return;
+    afficherCalibration (label);
+}
+
+void MainWindow::on_actionLogarithmique_triggered () {
+    QLabel* label = getFocusedLabel();
+    if (label == NULL)
+        return;
+    afficherLogarithmique (label);
+}
+
+void MainWindow::on_actionExponentielle_triggered () {
+    QLabel* label = getFocusedLabel();
+    if (label == NULL)
+        return;
+    afficherExponentielle (label);
+}
+
 void MainWindow::on_actionAddition_triggered () {
     QLabel* labelGauche = getFocusedLabel();
     if (labelGauche == NULL)
@@ -1502,6 +2983,56 @@ void MainWindow::on_actionCombinaison_triggered () {
     if (labelDroite == NULL)
         return;
     afficherCombinaison (labelGauche, labelDroite);
+}
+
+void MainWindow::on_actionMinimum_triggered () {
+    QLabel* labelGauche = getFocusedLabel();
+    if (labelGauche == NULL)
+        return;
+    QLabel* labelDroite = getFirstUnfocusedLabel();
+    if (labelDroite == NULL)
+        return;
+    afficherMinimum (labelGauche, labelDroite);
+}
+
+void MainWindow::on_actionMaximum_triggered () {
+    QLabel* labelGauche = getFocusedLabel();
+    if (labelGauche == NULL)
+        return;
+    QLabel* labelDroite = getFirstUnfocusedLabel();
+    if (labelDroite == NULL)
+        return;
+    afficherMaximum (labelGauche, labelDroite);
+}
+
+void MainWindow::on_actionAND_triggered () {
+    QLabel* labelGauche = getFocusedLabel();
+    if (labelGauche == NULL)
+        return;
+    QLabel* labelDroite = getFirstUnfocusedLabel();
+    if (labelDroite == NULL)
+        return;
+    afficherAND (labelGauche, labelDroite);
+}
+
+void MainWindow::on_actionOR_triggered () {
+    QLabel* labelGauche = getFocusedLabel();
+    if (labelGauche == NULL)
+        return;
+    QLabel* labelDroite = getFirstUnfocusedLabel();
+    if (labelDroite == NULL)
+        return;
+    afficherOR (labelGauche, labelDroite);
+}
+
+void MainWindow::on_actionXOR_triggered () {
+    QLabel* labelGauche = getFocusedLabel();
+    if (labelGauche == NULL)
+        return;
+    QLabel* labelDroite = getFirstUnfocusedLabel();
+    if (labelDroite == NULL)
+        return;
+    afficherXOR (labelGauche, labelDroite);
 }
 
 void MainWindow::on_actionNOT_triggered () {
@@ -1631,5 +3162,107 @@ void MainWindow::on_actionGradientYSobel_triggered () {
     if (label == NULL)
         return;
     afficherGradientSobel (label, SOBEL_Y);
+}
+
+void MainWindow::on_actionNormePrewitt_triggered () {
+    QLabel* label = getFocusedLabel();
+    if (label == NULL)
+        return;
+    afficherGradientPrewitt (label, PREWITT_NORME);
+}
+
+void MainWindow::on_actionGradientXPrewitt_triggered () {
+    QLabel* label = getFocusedLabel();
+    if (label == NULL)
+        return;
+    afficherGradientPrewitt (label, PREWITT_X);
+}
+
+void MainWindow::on_actionGradientYPrewitt_triggered () {
+    QLabel* label = getFocusedLabel();
+    if (label == NULL)
+        return;
+    afficherGradientPrewitt (label, PREWITT_Y);
+}
+
+void MainWindow::on_actionGainOffsetHistogramme_triggered () {
+    QLabel* label = getFocusedLabel();
+    if (label == NULL)
+        return;
+
+
+
+    QImage image = label->pixmap()->toImage();
+    int seuil1, seuil2;
+    bool ok;
+    IntIntDialog d(this, QString("*Calibration d'Histogramme"), QString("Min (entre 0 et 255): "), 80, 0, 255, 1, QString("Max (entre 0 et 255): "), 240, 0, 255, 1);
+    d.run(seuil1, seuil2, ok);
+    if (!ok) return;
+    this->statusBar()->showMessage(tr("*Calibration d'Histogramme(%1;%2): ").arg(seuil1).arg(seuil2));
+    QString titre = QString("*Calibration d'Histogramme(%1;%2): ").arg(seuil1).arg(seuil2) + windowTitle[qHash(label)];
+    QImage argbImage = image;
+    double valeurMin = seuil1;
+    double valeurMax = seuil2;
+
+
+
+    cv::Mat bgrMat;
+    QImageTocvMat(argbImage, bgrMat);
+
+    /*int min_0 = 256, min_1 = 256, min_2 = 256;
+    int max_0 = -1, max_1 = -1, max_2 = -1;
+    int i_0 = 0, i_1 = 0, i_2 = 0;
+    cv::MatIterator_<cv::Vec3b> it, end;
+    for(it = bgrMat.begin<cv::Vec3b>(), end = bgrMat.end<cv::Vec3b>(); it != end; ++it) {
+        i_0 = (*it)[0];
+        i_1 = (*it)[1];
+        i_2 = (*it)[2];
+        if (i_0 < min_0) min_0 = i_0;
+        if (i_0 > max_0) max_0 = i_0;
+        if (i_1 < min_1) min_1 = i_1;
+        if (i_1 > max_1) max_1 = i_1;
+        if (i_2 < min_2) min_2 = i_2;
+        if (i_2 > max_2) max_2 = i_2;
+    }//qDebug() << min_0 << ' ' << max_0;
+    double m_0 = (valeurMax - valeurMin)/(max_0 - min_0);
+    double b_0 = valeurMin - m_0 * min_0;
+    double m_1 = (valeurMax - valeurMin)/(max_1 - min_1);
+    double b_1 = valeurMin - m_1 * min_1;
+    double m_2 = (valeurMax - valeurMin)/(max_2 - min_2);
+    double b_2 = valeurMin - m_2 * min_2;
+    uchar lookup_0 [256], lookup_1 [256], lookup_2 [256];
+
+    for(int i = 0; i < min_0; i++)
+        lookup_0[i] = 0;
+    for(int i = min_0; i <= max_0; i++)
+        lookup_0[i] = round(m_0 * i + b_0);
+    for(int i = max_0 + 1; i < 256; i++)
+        lookup_0[i] = 0;
+
+    for(int i = 0; i < min_1; i++)
+        lookup_1[i] = 0;
+    for(int i = min_1; i <= max_1; i++)
+        lookup_1[i] = round(m_1 * i + b_1);
+    for(int i = max_0 + 1; i < 256; i++)
+        lookup_1[i] = 0;
+
+    for(int i = 0; i < min_2; i++)
+        lookup_2[i] = 0;
+    for(int i = min_2; i <= max_2; i++)
+        lookup_2[i] = round(m_2 * i + b_2);
+    for(int i = max_2 + 1; i < 256; i++)
+        lookup_2[i] = 0;
+
+    for(it = bgrMat.begin<cv::Vec3b>(), end = bgrMat.end<cv::Vec3b>(); it != end; ++it) {
+        (*it)[0] = lookup_0[(*it)[0]];
+        (*it)[1] = lookup_1[(*it)[1]];
+        (*it)[2] = lookup_2[(*it)[2]];
+    }*/
+
+    cv::normalize(bgrMat, bgrMat, valeurMin, valeurMax, CV_MINMAX);
+
+    cvMatToQImage(bgrMat, argbImage);
+    creerFenetre(QPixmap::fromImage(argbImage), titre);
+
 }
 
