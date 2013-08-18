@@ -172,7 +172,7 @@
     <addaction name="actionCorrectionGradient"/>
     <addaction name="separator"/>
     <addaction name="actionMedian"/>
-    <addaction name="actionFiltreV"/>
+    <addaction name="actionVFiltre"/>
     <addaction name="separator"/>
     <addaction name="menuFrequentiel"/>
    </widget>
@@ -700,12 +700,12 @@
     <string>Médian</string>
    </property>
   </action>
-  <action name="actionFiltreV">
+  <action name="actionVFiltre">
    <property name="enabled">
     <bool>false</bool>
    </property>
    <property name="text">
-    <string>Filtre-V</string>
+    <string>V-Filtre</string>
    </property>
   </action>
   <action name="actionFFT">

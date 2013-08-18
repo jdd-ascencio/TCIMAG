@@ -219,6 +219,7 @@ MainWindow::MainWindow (QWidget* parent) : QMainWindow (parent), ui (new Ui::Mai
     ui->actionNegatif->setEnabled(true);
     ui->actionAddition->setEnabled(true);
     ui->actionCalibration->setEnabled(true);//ui->actionGainOffsetHistogramme->setEnabled(true);
+    ui->actionEgalisation->setEnabled(true);
     ui->actionExponentielle->setEnabled(true);
     ui->actionLogarithmique->setEnabled(true);
     ui->actionSoustraction->setEnabled(true);
@@ -231,6 +232,11 @@ MainWindow::MainWindow (QWidget* parent) : QMainWindow (parent), ui (new Ui::Mai
     ui->actionNOT->setEnabled(true);
     ui->actionPlanBinaire->setEnabled(true);
     ui->actionQuantification->setEnabled(true);
+    ui->actionChangementDEchelle->setEnabled(true);
+    ui->actionRotation->setEnabled(true);
+    ui->actionRotationInterpolee->setEnabled(true);
+    ui->actionTransposee->setEnabled(true);
+    ui->actionVuePerspective->setEnabled(true);
     ui->actionBruitUniforme->setEnabled(true);
     ui->actionBruitPoivreEtSel->setEnabled(true);
     ui->actionUniforme->setEnabled(true);
@@ -241,6 +247,7 @@ MainWindow::MainWindow (QWidget* parent) : QMainWindow (parent), ui (new Ui::Mai
     ui->actionMoyenneurNxN->setEnabled(true);
     ui->actionLaplacien->setEnabled(true);
     ui->actionMedian->setEnabled(true);
+    ui->actionVFiltre->setEnabled(true);
     ui->actionFFT->setEnabled(true);
 
     //menu segmentation
@@ -727,14 +734,16 @@ void MainWindow::calculerRecadrage (QImage& argbImage, QString titre) {
     cv::Mat bgrMat;
     QImageTocvMat(argbImage, bgrMat);
 
-    if (argbImage.isGrayscale()) {
+    /*if (argbImage.isGrayscale()) {
         cv::Mat gMat;
         cv::cvtColor (bgrMat, gMat, CV_BGR2GRAY);
         cv::Mat result;
         equalizeHist (gMat, result);
         cv::cvtColor (result, bgrMat, CV_GRAY2BGR);
     } else
-        return;
+        return;*/
+    cv::normalize(bgrMat, bgrMat, 0, 255, CV_MINMAX);
+
 
     cvMatToQImage(bgrMat, argbImage);
     creerFenetre(QPixmap::fromImage(argbImage), titre);
@@ -848,6 +857,27 @@ void MainWindow::calculerCalibration (QImage& argbImage, QString titre, double v
         (*it)[2] = lookup_2[(*it)[2]];
     }*/
     cv::normalize(bgrMat, bgrMat, valeurMin, valeurMax, CV_MINMAX);
+
+    cvMatToQImage(bgrMat, argbImage);
+    creerFenetre(QPixmap::fromImage(argbImage), titre);
+}
+
+void MainWindow::afficherEgalisation (QLabel* label) {
+    QImage image = label->pixmap()->toImage();
+    QString titre = QString("Égalisation: ") + windowTitle[qHash(label)];
+    calculerEgalisation (image, titre);
+}
+
+void MainWindow::calculerEgalisation (QImage& argbImage, QString titre) {
+    cv::Mat bgrMat;
+    QImageTocvMat(argbImage, bgrMat);
+
+    std::vector<cv::Mat> bgr_planes;
+    cv::split(bgrMat, bgr_planes);
+    cv::equalizeHist(bgr_planes[0], bgr_planes[0]);
+    cv::equalizeHist(bgr_planes[1], bgr_planes[1]);
+    cv::equalizeHist(bgr_planes[2], bgr_planes[2]);
+    cv::merge(bgr_planes,bgrMat);
 
     cvMatToQImage(bgrMat, argbImage);
     creerFenetre(QPixmap::fromImage(argbImage), titre);
@@ -1267,6 +1297,203 @@ void MainWindow::calculerQuantification (QImage& argbImage, QString titre, int b
     creerFenetre(QPixmap::fromImage(argbImage), titre);
 }
 
+void MainWindow::afficherChangementDEchelle (QLabel* label) {
+    QImage image = label->pixmap()->toImage();
+    int width = image.width(), height = image.height();
+    int dimX, dimY;
+    bool ok;
+    IntIntDialog d(this, QString("Changement d'Échelle"), QString("Dimension X (entre 1 et %1): ").arg(width*10), width, 1, width*10, 1, QString("Dimension Y (entre 1 et %1): ").arg(height*10), height, 1, height*10, 1);
+    d.run(dimX, dimY, ok);
+    if (!ok) return;
+    this->statusBar()->showMessage(tr("Changement d'Échelle(%1;%2): ").arg(dimX).arg(dimY));
+    QString titre = QString("Changement d'Échelle(%1;%2): ").arg(dimX).arg(dimY) + windowTitle[qHash(label)];
+    calculerChangementDEchelle (image, titre, dimX, dimY);
+}
+
+void MainWindow::calculerChangementDEchelle (QImage& argbImage, QString titre, int dimX, int dimY) {
+   cv::Mat bgrMat;
+   QImageTocvMat(argbImage, bgrMat);
+
+   cv::Mat transform;
+   ///void resize(InputArray src, OutputArray dst, Size dsize, double fx=0, double fy=0, int interpolation=INTER_LINEAR )
+   cv::resize(bgrMat, transform, cv::Size(dimX, dimY), 0, 0, cv::INTER_LANCZOS4);
+   bgrMat=transform;
+
+   cvMatToQImage(bgrMat, argbImage);
+   creerFenetre(QPixmap::fromImage(argbImage), titre);
+}
+
+void MainWindow::afficherRotation (QLabel* label) {
+    QImage image = label->pixmap()->toImage();
+    double angle;
+    double zoom;
+    bool ok;
+    DoubleDoubleDialog d(this, QString("Rotation"), QString("Angle (entre 0 et 360): "), 0, 0, 360, 2, QString("Zoom (entre 0 et 10): "), 1, 0, 10, 2);
+    d.run(angle, zoom, ok);
+    if (!ok) return;
+    this->statusBar()->showMessage(tr("Rotation(%1°;%2): ").arg(angle).arg(zoom));
+    QString titre = QString("Rotation(%1°;%2): ").arg(angle).arg(zoom) + windowTitle[qHash(label)];
+    calculerRotation (image, titre, angle, zoom);
+}
+
+void MainWindow::calculerRotation (QImage& argbImage, QString titre, double angle, double zoom) {
+   cv::Mat bgrMat;
+   QImageTocvMat(argbImage, bgrMat);
+
+   cv::Mat rot_mat( 2, 3, CV_32FC1 );
+   /// Compute a rotation matrix with respect to the center of the image
+   cv::Point center = cv::Point( bgrMat.cols/2, bgrMat.rows/2 );
+   /// Get the rotation matrix with the specifications above
+   rot_mat = cv::getRotationMatrix2D( center, angle, zoom );
+   /// Rotate the warped image
+   cv::warpAffine( bgrMat, bgrMat, rot_mat, bgrMat.size(), cv::INTER_NEAREST, cv::BORDER_CONSTANT, cv::Scalar() );
+
+   cvMatToQImage(bgrMat, argbImage);
+   creerFenetre(QPixmap::fromImage(argbImage), titre);
+}
+
+void MainWindow::afficherRotationInterpolee (QLabel* label) {
+    QImage image = label->pixmap()->toImage();
+    double angle;
+    double zoom;
+    bool ok;
+    DoubleDoubleDialog d(this, QString("Rotation Interpolée"), QString("Angle (entre 0 et 360): "), 0, 0, 360, 2, QString("Zoom (entre 0 et 10): "), 1, 0, 10, 2);
+    d.run(angle, zoom, ok);
+    if (!ok) return;
+    this->statusBar()->showMessage(tr("Rotation Interpolée(%1°;%2): ").arg(angle).arg(zoom));
+    QString titre = QString("Rotation Interpolée(%1°;%2): ").arg(angle).arg(zoom) + windowTitle[qHash(label)];
+    calculerRotationInterpolee (image, titre, angle, zoom);
+}
+
+void MainWindow::calculerRotationInterpolee (QImage& argbImage, QString titre, double angle, double zoom) {
+   cv::Mat bgrMat;
+   QImageTocvMat(argbImage, bgrMat);
+
+   cv::Mat rot_mat( 2, 3, CV_32FC1 );
+   /// Compute a rotation matrix with respect to the center of the image
+   cv::Point center = cv::Point( bgrMat.cols/2, bgrMat.rows/2 );
+   /// Get the rotation matrix with the specifications above
+   rot_mat = cv::getRotationMatrix2D( center, angle, zoom );
+   /// Rotate the warped image cf opencv/modules/imgproc/src/imgwarp.cpp ln 3265
+   cv::warpAffine( bgrMat, bgrMat, rot_mat, bgrMat.size(), cv::INTER_LANCZOS4, cv::BORDER_CONSTANT, cv::Scalar() );
+
+   cvMatToQImage(bgrMat, argbImage);
+   creerFenetre(QPixmap::fromImage(argbImage), titre);
+}
+/*
+ void MainWindow::calculerVuePerspective (QImage& argbImage, QString titre) {
+    cv::Mat bgrMat;
+    QImageTocvMat(argbImage, bgrMat);
+
+    cv::Point2f srcTri[3];
+    cv::Point2f dstTri[3];
+
+    cv::Mat rot_mat( 2, 3, CV_32FC1 );
+    cv::Mat warp_mat( 2, 3, CV_32FC1 );
+    cv::Mat src, warp_dst, warp_rotate_dst;
+
+    /// Load the image
+    //src = cv::imread( argv[1], 1 );
+    src = bgrMat;
+
+    /// Set the dst image the same type and size as src
+    warp_dst = cv::Mat::zeros( src.rows, src.cols, src.type() );
+
+    /// Set your 3 points to calculate the  Affine Transform
+    srcTri[0] = cv::Point2f( 0,0 );
+    srcTri[1] = cv::Point2f( src.cols - 1, 0 );
+    srcTri[2] = cv::Point2f( 0, src.rows - 1 );
+
+    dstTri[0] = cv::Point2f( src.cols*0.0, src.rows*0.33 );
+    dstTri[1] = cv::Point2f( src.cols*0.85, src.rows*0.25 );
+    dstTri[2] = cv::Point2f( src.cols*0.15, src.rows*0.7 );
+
+    /// Get the Affine Transform
+    warp_mat = cv::getAffineTransform( srcTri, dstTri );
+
+    /// Apply the Affine Transform just found to the src image
+    cv::warpAffine( src, warp_dst, warp_mat, warp_dst.size() );
+
+    /// Compute a rotation matrix with respect to the center of the image
+    cv::Point center = cv::Point( warp_dst.cols/2, warp_dst.rows/2 );
+    double angle = -50.0;
+    double scale = 0.6;
+
+    /// Get the rotation matrix with the specifications above
+    rot_mat = cv::getRotationMatrix2D( center, angle, scale );
+
+    /// Rotate the warped image
+    cv::warpAffine( warp_dst, warp_rotate_dst, rot_mat, warp_dst.size() );
+
+    bgrMat = warp_rotate_dst;
+
+    cvMatToQImage(bgrMat, argbImage);
+    creerFenetre(QPixmap::fromImage(argbImage), titre);
+}
+*/
+
+void MainWindow::afficherTransposee (QLabel* label) {
+    QImage image = label->pixmap()->toImage();
+    QString titre = QString("Transposée: ") + windowTitle[qHash(label)];
+    calculerTransposee (image, titre);
+}
+
+void MainWindow::calculerTransposee (QImage& argbImage, QString titre) {
+    cv::Mat bgrMat;
+    QImageTocvMat(argbImage, bgrMat);
+
+    bgrMat = bgrMat.t();
+
+    cvMatToQImage(bgrMat, argbImage);
+    creerFenetre(QPixmap::fromImage(argbImage), titre);
+}
+
+void MainWindow::afficherVuePerspective (QLabel* label) {
+    QImage image = label->pixmap()->toImage();
+    QString titre = QString("Vue Perspective: ") + windowTitle[qHash(label)];
+    calculerVuePerspective (image, titre);
+}
+
+void MainWindow::calculerVuePerspective (QImage& argbImage, QString titre) {
+    cv::Mat bgrMat;
+    QImageTocvMat(argbImage, bgrMat);
+
+    cv::Point2f srcTri[3];
+    cv::Point2f dstTri[3];
+
+    //cv::Mat rot_mat( 2, 3, CV_32FC1 );
+    cv::Mat warp_mat( 2, 3, CV_32FC1 );
+    cv::Mat src, warp_dst;//, warp_rotate_dst;
+
+    /// Load the image
+    //src = cv::imread( argv[1], 1 );
+    src = bgrMat;
+
+    /// Set the dst image the same type and size as src
+    warp_dst = cv::Mat::zeros( src.rows, src.cols, src.type() );
+
+    /// Set your 3 points to calculate the  Affine Transform
+    srcTri[0] = cv::Point2f( 0,0 );
+    srcTri[1] = cv::Point2f( src.cols - 1, 0 );
+    srcTri[2] = cv::Point2f( 0, src.rows - 1 );
+
+    dstTri[0] = cv::Point2f( src.cols*0.0, src.rows*0.33 );
+    dstTri[1] = cv::Point2f( src.cols*0.85, src.rows*0.25 );
+    dstTri[2] = cv::Point2f( src.cols*0.15, src.rows*0.7 );
+
+    /// Get the Affine Transform
+    //warp_mat = cv::getAffineTransform( srcTri, dstTri );
+    warp_mat = cv::getPerspectiveTransform( srcTri, dstTri );
+
+    /// Apply the Affine Transform just found to the src image
+    //cv::warpAffine(src, warp_dst, warp_mat, warp_dst.size());
+    cv::warpPerspective(src, warp_dst, warp_mat, warp_dst.size(), cv::INTER_LANCZOS4, BORDER_TYPE, cv::Scalar());
+    bgrMat = warp_dst;
+
+    cvMatToQImage(bgrMat, argbImage);
+    creerFenetre(QPixmap::fromImage(argbImage), titre);
+}
+
 void MainWindow::afficherBruitUniforme (QLabel* label) {
     QImage image = label->pixmap()->toImage();
     bool ok;
@@ -1567,7 +1794,7 @@ void MainWindow::afficherMoyenneurNxN (QLabel* label) {
     bool ok;
     int N = QInputDialog::getInt(this, tr("Moyenneur NxN séparable"), tr("N: "), 3, 3, 31, 1, &ok, 0);
     if (!ok) return;
-    this->statusBar()->showMessage(tr("N = %1").arg(N));
+    this->statusBar()->showMessage(tr("Moyenneur %1x%2 séparable: ").arg(N).arg(N));
     QString titre = QString("Moyenneur %1x%2 séparable: ").arg(N).arg(N) + windowTitle[qHash(label)];
     calculerMoyenneurNxN (image, titre,cv::Size (N, N), cv::Point (-1, -1), BORDER_TYPE);
 }
@@ -1590,8 +1817,8 @@ void MainWindow::afficherLaplacien (QLabel* label) {
     DoubleIntDialog d(this, QString("Laplacien"), QString("Gain (entre 1 et 30): "), 1, 1, 30, 2, QString("Offset (entre 0 et 255): "), 0, 0, 255, 1);
     d.run(gain, offset, ok);
     if (!ok) return;
-    this->statusBar()->showMessage(tr("Laplacien (%1;%2): ").arg(gain).arg(offset));
-    QString titre = QString("Laplacien (%1;%2): ").arg(gain).arg(offset) + windowTitle[qHash(label)];
+    this->statusBar()->showMessage(tr("Laplacien(%1;%2): ").arg(gain).arg(offset));
+    QString titre = QString("Laplacien(%1;%2): ").arg(gain).arg(offset) + windowTitle[qHash(label)];
     calculerLaplacien(image, titre, 3, gain, offset, BORDER_TYPE);
 }
 
@@ -1626,6 +1853,412 @@ void MainWindow::calculerMedian (QImage& argbImage, QString titre, int ksize) {
     QImageTocvMat(argbImage, bgrMat);
 
     cv::medianBlur(bgrMat, bgrMat, ksize);
+
+    cvMatToQImage(bgrMat, argbImage);
+    creerFenetre(QPixmap::fromImage(argbImage), titre);
+}
+
+void MainWindow::
+afficherVFiltre (QLabel* label) {
+    QImage image = label->pixmap()->toImage();
+    bool ok;
+    int N = QInputDialog::getInt(this, tr("V-Filtre"), tr("Taille de la fenêtre: "), 3, 3, 31, 2, &ok, 0);
+    if (!ok) return;
+    this->statusBar()->showMessage(tr("V-Filtre(%1): ").arg(N));
+    QString titre = QString("V-Filtre(%1): ").arg(N) + windowTitle[qHash(label)];
+    calculerVFiltre(image, titre, N);
+}
+
+void MainWindow::calculerVFiltre (QImage& argbImage, QString titre, int ksize) {
+    if (ksize % 2 == 0)
+        return;
+    cv::Mat bgrMat;
+    QImageTocvMat(argbImage, bgrMat);
+
+    /*if (argbImage.isGrayscale()) {
+        cv::cvtColor(bgrMat, bgrMat, CV_BGR2GRAY);
+        bgrMat.convertTo(bgrMat, CV_64F, 1.d, 0);
+        bgrMat += 1.d;
+        cv::log(bgrMat, bgrMat);
+        cv::normalize(bgrMat, bgrMat, 0, 1, CV_MINMAX);
+        bgrMat.convertTo(bgrMat, CV_8U, 255, 0);
+        cv::cvtColor(bgrMat, bgrMat, CV_GRAY2BGR);
+    } else {
+        bgrMat.convertTo(bgrMat, CV_64F, 1.d, 0);
+        bgrMat += 1.d;
+        cv::log(bgrMat, bgrMat);
+        cv::normalize(bgrMat, bgrMat, 0, 1, CV_MINMAX);
+        bgrMat.convertTo(bgrMat, CV_8U, 255, 0);
+    }
+    if (argbImage.isGrayscale()) {
+        cv::Mat gMat;
+        cv::cvtColor(bgrMat, gMat, CV_BGR2GRAY);
+        cv::Mat result (gMat.rows, gMat.cols, CV_8U);
+        cv::Mat_<uchar>::iterator itr = result.begin<uchar>();
+        cv::Mat_<uchar>::const_iterator it = gMat.begin<uchar>();
+        cv::Mat_<uchar>::const_iterator itend = gMat.end<uchar>();
+        for(; it != itend; ++it, ++itr)
+            *itr = lookup[*it];
+        cv::cvtColor(result, bgrMat, CV_GRAY2BGR);
+    } else {
+        cv::MatIterator_<cv::Vec3b> it, end;
+        for(it = bgrMat.begin<cv::Vec3b>(), end = bgrMat.end<cv::Vec3b>(); it != end; ++it) {
+            (*it)[0] = lookup[(*it)[0]];
+            (*it)[1] = lookup[(*it)[1]];
+            (*it)[2] = lookup[(*it)[2]];
+        }
+    }*/
+    /*
+    cv::Mat q0(magI, cv::Rect(0, 0, cx, cy));   // Top-Left - Create a ROI per quadrant
+    cv::Mat q1(magI, cv::Rect(cx, 0, cx, cy));  // Top-Right
+    cv::Mat q2(magI, cv::Rect(0, cy, cx, cy));  // Bottom-Left
+    cv::Mat q3(magI, cv::Rect(cx, cy, cx, cy)); // Bottom-Right
+    meanStdDev()
+
+
+
+    if (argbImage.isGrayscale()) {
+        cv::Mat gMat;
+        cv::cvtColor(bgrMat, gMat, CV_BGR2GRAY);
+        cv::Mat result (gMat.rows, gMat.cols, CV_8U);
+        cv::MatIterator_<uchar> it1, it2, end;
+        int x, y, size = (ksize - 1)/2;
+        double m0, s0, m1, s1, m2, s2, m3, s3, m4, s4;
+        for(it1 = result.begin<uchar>(), it2 = gMat.begin<uchar>(), end = gMat.end<uchar>(); it2 != end; ++it1, ++ it2) {
+            x = it2.pos().x;
+            y = it2.pos().y;
+            cv::Mat q0(gMat, cv::Rect(x-size, y-size, x, y)); // Top-Left - Create a ROI per quadrant
+            cv::Mat q1(gMat, cv::Rect(x, y-size, x+size, y)); // Top-Right
+            cv::Mat q2(gMat, cv::Rect(x-size, y, x, y+size)); // Bottom-Left
+            cv::Mat q3(gMat, cv::Rect(x, y, x+size, y+size)); // Bottom-Right
+            cv::Mat q4(gMat, cv::Rect(x, y, x+size, y+size)); // Bottom-Right
+            *it1 = cv::saturate_cast<uchar>(*it2);
+        }
+        cv::cvtColor(result, bgrMat, CV_GRAY2BGR);
+    } else {
+        //cv::MatIterator_<cv::Vec3b> it, end;
+        //for(it = bgrMat.begin<cv::Vec3b>(), end = bgrMat.end<cv::Vec3b>(); it != end; ++it) {
+            //(*it)[0] = lookup[(*it)[0]];
+            //(*it)[1] = lookup[(*it)[1]];
+            //(*it)[2] = lookup[(*it)[2]];
+        //}
+    }
+        cv::Mat gMat;
+        cv::cvtColor(bgrMat, gMat, CV_BGR2GRAY);
+        int cols = gMat.cols, rows = gMat.rows;
+        uchar* p = (uchar*)gMat.data;
+        for (int y = 0; y < rows; y++) {
+            for (int x = 0; x < cols; x++) {
+                *(p + y*cols+x) = cv::saturate_cast<uchar>(255*((cols-1)-x)/(cols-1)); //hor grad
+                *(p + y*cols+x) = cv::saturate_cast<uchar>(255*(y)/(cols-1));          //hor grad (inv)
+                *(p + y*cols+x) = cv::saturate_cast<uchar>(255*((cols-1)-y)/(cols-1)); //ver grad
+                *(p + y*cols+x) = cv::saturate_cast<uchar>(255*(y)/(cols-1));          //ver grad (inv)
+            }
+        }
+        cv::cvtColor(gMat, bgrMat, CV_GRAY2BGR);
+    */
+    if (argbImage.isGrayscale()) {
+        cv::Mat gMat;
+        cv::cvtColor(bgrMat, gMat, CV_BGR2GRAY);
+        int rows = gMat.rows, cols = gMat.cols;
+        int size = (ksize - 1)/2;//, x, y;
+        double best_mean, best_stddev, mean, stddev;//, m0, s0, m1, s1, m2, s2, m3, s3, m4, s4;
+        //cv::Mat result (rows, cols, CV_8U);
+        cv::Mat result = gMat.clone();
+        //cv::MatIterator_<uchar> it1, it2, end;
+        /*for(it1 = result.begin<uchar>(), it2 = gMat.begin<uchar>(), end = gMat.end<uchar>(); it2 != end; ++it1, ++ it2) {
+            x = it2.pos().x;
+            y = it2.pos().y;
+            std::cerr << x << ' ' << y << std::endl;
+            cv::Mat q0(gMat, cv::Rect(std::max(x-ksize, 0), std::max(y-ksize, 0), x, y));       // Top-Left - Create a ROI per quadrant
+            cv::Mat q1(gMat, cv::Rect(x, std::max(y-ksize, 0), std::min(x+ksize, cols), y));    // Top-Right
+            cv::Mat q2(gMat, cv::Rect(std::max(x-ksize, 0), y, x, std::min(y+ksize, rows)));    // Bottom-Left
+            cv::Mat q3(gMat, cv::Rect(x, y, std::min(x+ksize, cols), std::min(y+ksize, rows))); // Bottom-Right
+            cv::Mat q4(gMat, cv::Rect(std::max(x-size, 0), std::max(y-size, 0), std::min(x+size+1, cols), std::min(y+size+1, rows))); // Center
+            std::cerr << q0 << q1 << q2 << q3 << q4 << std::endl;
+            // *it1 = cv::saturate_cast<uchar>(*it2);
+            // if (x == 4) break;
+        }*/
+        /*uchar* p = (uchar*)bgrMat.data;
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols-1; j++) {
+                *(p + i*cols+j) = (float)((cols-1)-j)/(cols-1);
+            }
+        }*/
+        //uchar* p = (uchar*)gMat.data;
+        uchar* p = (uchar*)result.data;
+        //for (int y = 0; y < rows; y++) {
+            //for (int x = 0; x < cols; x++) {
+                //*(p + y*cols+x) = p + y*cols+x - gMat.datastart;
+            //}
+        //}
+/*
+        for (int y = 0; y < ksize-1; y++) {
+            for (int x = 0; x < ksize-1; x++) {
+                std::cerr << x << ' ' << y << std::endl;
+                std::cerr << cv::Rect(std::max(x-size, 0), std::max(y-size, 0), x+1, y+1) << std::endl;
+                std::cerr << cv::Rect(x, std::max(y-ksize+1, 0), ksize, y+1) << std::endl;
+                std::cerr << cv::Rect(std::max(x-ksize+1, 0), y, x+1, ksize) << std::endl;
+                std::cerr << cv::Rect(x, y, ksize, ksize) << std::endl;
+                std::cerr << cv::Rect(std::max(x-size, 0), std::max(y-size, 0), size+1, size+1) << std::endl;
+                cv::Mat q0(gMat, cv::Rect(std::max(x-size, 0), std::max(y-size, 0), x+1, y+1));       // Top-Left
+                cv::Mat q1(gMat, cv::Rect(x, std::max(y-ksize+1, 0), ksize, y+1));                    // Top-Right
+                cv::Mat q2(gMat, cv::Rect(std::max(x-ksize+1, 0), y, x+1, ksize));                    // Bottom-Left
+                cv::Mat q3(gMat, cv::Rect(x, y, ksize, ksize));                                       // Bottom-Right
+                cv::Mat q4(gMat, cv::Rect(std::max(x-size, 0), std::max(y-size, 0), size+1, size+1)); // Center
+                cv::Mat mean_m, stddev_m;
+                best_mean = -1; best_stddev = 1.79769e+308;
+                std::cerr << q0 << q1 << q2 << q3 << q4 << std::endl << std::endl;
+
+                cv::meanStdDev(q0, mean_m, stddev_m, cv::noArray());
+                mean = mean_m.at<double>(0, 0);stddev = stddev_m.at<double>(0,0);
+                if(stddev < best_stddev) {best_stddev = stddev; best_mean = mean;}
+                std::cerr << mean << ' ' << stddev << ' ' << best_mean << std::endl << std::endl;
+
+                cv::meanStdDev(q1, mean_m, stddev_m, cv::noArray());
+                mean = mean_m.at<double>(0, 0);stddev = stddev_m.at<double>(0,0);
+                if(stddev < best_stddev) {best_stddev = stddev; best_mean = mean;}
+                std::cerr << mean << ' ' << stddev << ' ' << best_mean << std::endl << std::endl;
+
+                cv::meanStdDev(q2, mean_m, stddev_m, cv::noArray());
+                mean = mean_m.at<double>(0, 0);stddev = stddev_m.at<double>(0,0);
+                if(stddev < best_stddev) {best_stddev = stddev; best_mean = mean;}
+                std::cerr << mean << ' ' << stddev << ' ' << best_mean << std::endl << std::endl;
+
+                cv::meanStdDev(q3, mean_m, stddev_m, cv::noArray());
+                mean = mean_m.at<double>(0, 0);stddev = stddev_m.at<double>(0,0);
+                if(stddev < best_stddev) {best_stddev = stddev; best_mean = mean;}
+                std::cerr << mean << ' ' << stddev << ' ' << best_mean << std::endl << std::endl;
+
+                cv::meanStdDev(q4, mean_m, stddev_m, cv::noArray());
+                mean = mean_m.at<double>(0, 0);stddev = stddev_m.at<double>(0,0);
+                if(stddev < best_stddev) {best_stddev = stddev; best_mean = mean;}
+                std::cerr << mean << ' ' << stddev << ' ' << best_mean << std::endl << std::endl;
+
+                *(p + y*cols+x) = best_mean;
+            }
+        }
+*/
+        for (int y = 0; y < ksize-1; y++) {
+            for (int x = 0; x < ksize-1; x++) {
+                /*std::cerr << x << ' ' << y << std::endl;
+                std::cerr << cv::Rect(0, 0, x+1, y+1) << std::endl;
+                std::cerr << cv::Rect(x, 0, ksize, y+1) << std::endl;
+                std::cerr << cv::Rect(0, y, x+1, ksize) << std::endl;
+                std::cerr << cv::Rect(x, y, ksize, ksize) << std::endl;
+                std::cerr << cv::Rect(0, 0, size+1, size+1) << std::endl;*/
+                cv::Mat q0(gMat, cv::Rect(0, 0, x+1, y+1));       // Top-Left
+                cv::Mat q1(gMat, cv::Rect(x, 0, ksize, y+1));     // Top-Right
+                cv::Mat q2(gMat, cv::Rect(0, y, x+1, ksize));     // Bottom-Left
+                cv::Mat q3(gMat, cv::Rect(x, y, ksize, ksize));   // Bottom-Right
+                cv::Mat q4(gMat, cv::Rect(0, 0, size+1, size+1)); // Center
+                cv::Mat mean_m, stddev_m, q;
+                best_mean = -1; best_stddev = 1.79769e+308;
+
+                for (int k = 0; k < 5; k++) {
+                    q = k==0 ? q0 : k==1 ? q1 : k==2 ? q2 : k==3 ? q3 : q4;
+                    cv::meanStdDev(q, mean_m, stddev_m, cv::noArray());
+                    mean = mean_m.at<double>(0, 0);stddev = stddev_m.at<double>(0,0);
+                    if(stddev < best_stddev) {best_stddev = stddev; best_mean = mean;}
+                }
+                /*cv::meanStdDev(q0, mean_m, stddev_m, cv::noArray());
+                mean = mean_m.at<double>(0, 0);stddev = stddev_m.at<double>(0,0);
+                if(stddev < best_stddev) {best_stddev = stddev; best_mean = mean;}
+
+                cv::meanStdDev(q1, mean_m, stddev_m, cv::noArray());
+                mean = mean_m.at<double>(0, 0);stddev = stddev_m.at<double>(0,0);
+                if(stddev < best_stddev) {best_stddev = stddev; best_mean = mean;}
+
+                cv::meanStdDev(q2, mean_m, stddev_m, cv::noArray());
+                mean = mean_m.at<double>(0, 0);stddev = stddev_m.at<double>(0,0);
+                if(stddev < best_stddev) {best_stddev = stddev; best_mean = mean;}
+
+                cv::meanStdDev(q3, mean_m, stddev_m, cv::noArray());
+                mean = mean_m.at<double>(0, 0);stddev = stddev_m.at<double>(0,0);
+                if(stddev < best_stddev) {best_stddev = stddev; best_mean = mean;}
+
+                cv::meanStdDev(q4, mean_m, stddev_m, cv::noArray());
+                mean = mean_m.at<double>(0, 0);stddev = stddev_m.at<double>(0,0);
+                if(stddev < best_stddev) {best_stddev = stddev; best_mean = mean;}*/
+
+                *(p + y*cols+x) = best_mean;
+            }
+        }
+        for (int y = 0; y < ksize-1; y++) {
+            for (int x = ksize-1; x < cols - ksize+1; x++) {
+                cv::Mat q0(gMat, cv::Rect(x-ksize+1, 0, ksize, y+1));   // Top-Left
+                cv::Mat q1(gMat, cv::Rect(x, 0, ksize, y+1));           // Top-Right
+                cv::Mat q2(gMat, cv::Rect(x-ksize+1, y, ksize, ksize)); // Bottom-Left
+                cv::Mat q3(gMat, cv::Rect(x, y, ksize, ksize));         // Bottom-Right
+                cv::Mat q4(gMat, cv::Rect(x-size, 0, ksize, size+1));   // Center
+                cv::Mat mean_m, stddev_m, q;
+                best_mean = -1; best_stddev = 1.79769e+308;
+
+                for (int k = 0; k < 5; k++) {
+                    q = k==0 ? q0 : k==1 ? q1 : k==2 ? q2 : k==3 ? q3 : q4;
+                    cv::meanStdDev(q, mean_m, stddev_m, cv::noArray());
+                    mean = mean_m.at<double>(0, 0);stddev = stddev_m.at<double>(0,0);
+                    if(stddev < best_stddev) {best_stddev = stddev; best_mean = mean;}
+                }
+
+                *(p + y*cols+x) = best_mean;
+            }
+        }
+        for (int y = 0; y < ksize-1; y++) {
+            for (int x = cols - ksize+1; x < cols; x++) {
+                cv::Mat q0(gMat, cv::Rect(x-ksize+1, 0, ksize, y+1));       // Top-Left
+                cv::Mat q1(gMat, cv::Rect(x, 0, cols-x, y+1));              // Top-Right
+                cv::Mat q2(gMat, cv::Rect(x-ksize+1, y, ksize, ksize));     // Bottom-Left
+                cv::Mat q3(gMat, cv::Rect(x, y, cols-x, ksize));            // Bottom-Right
+                cv::Mat q4(gMat, cv::Rect(x-size, 0, cols-x+size, size+1)); // Center
+                cv::Mat mean_m, stddev_m, q;
+                best_mean = -1; best_stddev = 1.79769e+308;
+
+                for (int k = 0; k < 5; k++) {
+                    q = k==0 ? q0 : k==1 ? q1 : k==2 ? q2 : k==3 ? q3 : q4;
+                    cv::meanStdDev(q, mean_m, stddev_m, cv::noArray());
+                    mean = mean_m.at<double>(0, 0);stddev = stddev_m.at<double>(0,0);
+                    if(stddev < best_stddev) {best_stddev = stddev; best_mean = mean;}
+                }
+
+                *(p + y*cols+x) = best_mean;
+            }
+        }
+
+
+
+        for (int y = ksize-1; y < rows - ksize+1; y++) {
+            for (int x = 0; x < ksize-1; x++) {
+                cv::Mat q0(gMat, cv::Rect(0, y-ksize+1, x+1, ksize));   // Top-Left
+                cv::Mat q1(gMat, cv::Rect(x, y-ksize+1, ksize, ksize)); // Top-Right
+                cv::Mat q2(gMat, cv::Rect(0, y, x+1, ksize));           // Bottom-Left
+                cv::Mat q3(gMat, cv::Rect(x, y, ksize, ksize));         // Bottom-Right
+                cv::Mat q4(gMat, cv::Rect(0, y-size, size+1, ksize));   // Center
+                cv::Mat mean_m, stddev_m, q;
+                best_mean = -1; best_stddev = 1.79769e+308;
+
+                for (int k = 0; k < 5; k++) {
+                    q = k==0 ? q0 : k==1 ? q1 : k==2 ? q2 : k==3 ? q3 : q4;
+                    cv::meanStdDev(q, mean_m, stddev_m, cv::noArray());
+                    mean = mean_m.at<double>(0, 0);stddev = stddev_m.at<double>(0,0);
+                    if(stddev < best_stddev) {best_stddev = stddev; best_mean = mean;}
+                }
+
+                *(p + y*cols+x) = best_mean;
+            }
+        }
+        for (int y = ksize-1; y < rows - ksize+1; y++) {
+            for (int x = ksize-1; x < cols - ksize+1; x++) {
+                cv::Mat q0(gMat, cv::Rect(x-ksize+1, y-ksize+1, ksize, ksize)); // Top-Left
+                cv::Mat q1(gMat, cv::Rect(x, y-ksize+1, ksize, ksize));         // Top-Right
+                cv::Mat q2(gMat, cv::Rect(x-ksize+1, y, ksize, ksize));         // Bottom-Left
+                cv::Mat q3(gMat, cv::Rect(x, y, ksize, ksize));                 // Bottom-Right
+                cv::Mat q4(gMat, cv::Rect(x-size, y-size, ksize, ksize));       // Center
+                cv::Mat mean_m, stddev_m, q;
+                best_mean = -1; best_stddev = 1.79769e+308;
+
+                for (int k = 0; k < 5; k++) {
+                    q = k==0 ? q0 : k==1 ? q1 : k==2 ? q2 : k==3 ? q3 : q4;
+                    cv::meanStdDev(q, mean_m, stddev_m, cv::noArray());
+                    mean = mean_m.at<double>(0, 0);stddev = stddev_m.at<double>(0,0);
+                    if(stddev < best_stddev) {best_stddev = stddev; best_mean = mean;}
+                }
+
+                *(p + y*cols+x) = best_mean;
+            }
+        }
+        for (int y = ksize-1; y < rows - ksize+1; y++) {
+            for (int x = cols - ksize+1; x < cols; x++) {
+                cv::Mat q0(gMat, cv::Rect(x-ksize+1, y-ksize+1, ksize, ksize)); // Top-Left
+                cv::Mat q1(gMat, cv::Rect(x, y-ksize+1, cols-x, ksize));        // Top-Right
+                cv::Mat q2(gMat, cv::Rect(x-ksize+1, y, ksize, ksize));         // Bottom-Left
+                cv::Mat q3(gMat, cv::Rect(x, y, cols-x, ksize));                // Bottom-Right
+                cv::Mat q4(gMat, cv::Rect(x-size, y-size, cols-x+size, ksize)); // Center
+                cv::Mat mean_m, stddev_m, q;
+                best_mean = -1; best_stddev = 1.79769e+308;
+
+                for (int k = 0; k < 5; k++) {
+                    q = k==0 ? q0 : k==1 ? q1 : k==2 ? q2 : k==3 ? q3 : q4;
+                    cv::meanStdDev(q, mean_m, stddev_m, cv::noArray());
+                    mean = mean_m.at<double>(0, 0);stddev = stddev_m.at<double>(0,0);
+                    if(stddev < best_stddev) {best_stddev = stddev; best_mean = mean;}
+                }
+
+                *(p + y*cols+x) = best_mean;
+            }
+        }
+
+
+
+        for (int y = cols - ksize+1; y < cols; y++) {
+            for (int x = 0; x < ksize-1; x++) {
+                cv::Mat q0(gMat, cv::Rect(0, y-ksize+1, x+1, ksize));       // Top-Left
+                cv::Mat q1(gMat, cv::Rect(x, y-ksize+1, ksize, ksize));     // Top-Right
+                cv::Mat q2(gMat, cv::Rect(0, y, x+1, cols-y));              // Bottom-Left
+                cv::Mat q3(gMat, cv::Rect(x, y, ksize, cols-y));            // Bottom-Right
+                cv::Mat q4(gMat, cv::Rect(0, y-size, size+1, cols-y+size)); // Center
+                cv::Mat mean_m, stddev_m, q;
+                best_mean = -1; best_stddev = 1.79769e+308;
+
+                for (int k = 0; k < 5; k++) {
+                    q = k==0 ? q0 : k==1 ? q1 : k==2 ? q2 : k==3 ? q3 : q4;
+                    cv::meanStdDev(q, mean_m, stddev_m, cv::noArray());
+                    mean = mean_m.at<double>(0, 0);stddev = stddev_m.at<double>(0,0);
+                    if(stddev < best_stddev) {best_stddev = stddev; best_mean = mean;}
+                }
+
+                *(p + y*cols+x) = best_mean;
+            }
+        }
+        for (int y = cols - ksize+1; y < cols; y++) {
+            for (int x = ksize-1; x < cols - ksize+1; x++) {
+                cv::Mat q0(gMat, cv::Rect(x-ksize+1, y-ksize+1, ksize, ksize)); // Top-Left
+                cv::Mat q1(gMat, cv::Rect(x, y-ksize+1, ksize, ksize));         // Top-Right
+                cv::Mat q2(gMat, cv::Rect(x-ksize+1, y, ksize, cols-y));        // Bottom-Left
+                cv::Mat q3(gMat, cv::Rect(x, y, ksize, cols-y));                // Bottom-Right
+                cv::Mat q4(gMat, cv::Rect(x-size, y-size, ksize, cols-y+size)); // Center
+                cv::Mat mean_m, stddev_m, q;
+                best_mean = -1; best_stddev = 1.79769e+308;
+
+                for (int k = 0; k < 5; k++) {
+                    q = k==0 ? q0 : k==1 ? q1 : k==2 ? q2 : k==3 ? q3 : q4;
+                    cv::meanStdDev(q, mean_m, stddev_m, cv::noArray());
+                    mean = mean_m.at<double>(0, 0);stddev = stddev_m.at<double>(0,0);
+                    if(stddev < best_stddev) {best_stddev = stddev; best_mean = mean;}
+                }
+
+                *(p + y*cols+x) = best_mean;
+            }
+        }
+        for (int y = cols - ksize+1; y < cols; y++) {
+            for (int x = cols - ksize+1; x < cols; x++) {
+                cv::Mat q0(gMat, cv::Rect(x-ksize+1, y-ksize+1, ksize, ksize));       // Top-Left
+                cv::Mat q1(gMat, cv::Rect(x, y-ksize+1, cols-x, ksize));              // Top-Right
+                cv::Mat q2(gMat, cv::Rect(x-ksize+1, y, ksize, cols-y));              // Bottom-Left
+                cv::Mat q3(gMat, cv::Rect(x, y, cols-x, cols-y));                     // Bottom-Right
+                cv::Mat q4(gMat, cv::Rect(x-size, y-size, cols-x+size, cols-y+size)); // Center
+                cv::Mat mean_m, stddev_m, q;
+                best_mean = -1; best_stddev = 1.79769e+308;
+
+                for (int k = 0; k < 5; k++) {
+                    q = k==0 ? q0 : k==1 ? q1 : k==2 ? q2 : k==3 ? q3 : q4;
+                    cv::meanStdDev(q, mean_m, stddev_m, cv::noArray());
+                    mean = mean_m.at<double>(0, 0);stddev = stddev_m.at<double>(0,0);
+                    if(stddev < best_stddev) {best_stddev = stddev; best_mean = mean;}
+                }
+
+                *(p + y*cols+x) = best_mean;
+            }
+        }
+        cv::cvtColor(result, bgrMat, CV_GRAY2BGR);
+    } else {
+        //cv::MatIterator_<cv::Vec3b> it, end;
+        //for(it = bgrMat.begin<cv::Vec3b>(), end = bgrMat.end<cv::Vec3b>(); it != end; ++it) {
+            //(*it)[0] = lookup[(*it)[0]];
+            //(*it)[1] = lookup[(*it)[1]];
+            //(*it)[2] = lookup[(*it)[2]];
+        //}
+    }
 
     cvMatToQImage(bgrMat, argbImage);
     creerFenetre(QPixmap::fromImage(argbImage), titre);
@@ -1699,7 +2332,7 @@ void MainWindow::afficherSeuillageManuelSimple (QLabel* label) {
     bool ok;
     int seuil = QInputDialog::getInt(this, tr("Seuillage Simple"), tr("Seuil (entre 0 et 255): "), 127, 0, 255, 1, &ok, 0);
     if (!ok) return;
-    this->statusBar()->showMessage(tr("Seuil = %1").arg(seuil));
+    this->statusBar()->showMessage(tr("Seuillage(%1): ").arg(seuil));
     QString titre = QString("Seuillage(%1): ").arg(seuil) + windowTitle[qHash(label)];
     calculerSeuillageManuelSimple (image, titre, seuil, 255);
 }
@@ -1789,7 +2422,7 @@ void MainWindow::calculerSeuillageParHysteresis (QImage& argbImage, QString titr
     cv::Mat gMat;
     cv::cvtColor (bgrMat, gMat, CV_BGR2GRAY);
     cv::blur (gMat, gMat, cv::Size(3,3), cv::Point(-1,-1), BORDER_TYPE);
-    //cv::GaussianBlur (bgrMat, gMat, cv::Size(3,3), 0, 0, BORDER_TYPE);
+    //cv::GaussianBlur (gMat, gMat, cv::Size(3,3), 0, 0, BORDER_TYPE);
     cv::Mat edges;
     cv::Canny (gMat, edges, seuilBas, seuilHaut, ksize, utiliserNormeL2);
     cv::Mat dst (bgrMat.size(), bgrMat.type(), cv::Scalar::all(0));
@@ -1918,7 +2551,7 @@ void MainWindow::afficherGradientPrewitt (QLabel* label, TypePrewitt type) {
     if (!ok) return;
     this->statusBar()->showMessage(tr("Gradient Prewitt %1(%2;%3): ").arg(type == PREWITT_NORME ? "[Norme]" : type == PREWITT_X ? "X" : type == PREWITT_Y ? "Y" : "").arg(gain).arg(offset));
     QString titre = QString("Gradient Prewitt %1(%2;%3): ").arg(type == PREWITT_NORME ? "[Norme]" : type == PREWITT_X ? "X" : type == PREWITT_Y ? "Y" : "").arg(gain).arg(offset) + windowTitle[qHash(label)];
-    calculerGradientPrewitt (image, titre, type, 3, gain, offset, BORDER_TYPE);
+    calculerGradientPrewitt (image, titre, type, gain, offset, BORDER_TYPE);
 }
 
 /*
@@ -2791,7 +3424,7 @@ cvLaplace( const void* srcarr, void* dstarr, int aperture_size )
     cv::sepFilter2D(src, dst, ddepth, kx, ky, cv::Point(-1,-1), offset, borderType);
 */
 
-void MainWindow::calculerGradientPrewitt (QImage& argbImage, QString titre, TypePrewitt type, int ksize, double gain, double offset, int borderType) {
+void MainWindow::calculerGradientPrewitt (QImage& argbImage, QString titre, TypePrewitt type, double gain, double offset, int borderType) {
     cv::Mat bgrMat;
     QImageTocvMat(argbImage, bgrMat);
 
@@ -2941,6 +3574,13 @@ void MainWindow::on_actionCalibration_triggered () {
     afficherCalibration (label);
 }
 
+void MainWindow::on_actionEgalisation_triggered () {
+    QLabel* label = getFocusedLabel();
+    if (label == NULL)
+        return;
+    afficherEgalisation (label);
+}
+
 void MainWindow::on_actionLogarithmique_triggered () {
     QLabel* label = getFocusedLabel();
     if (label == NULL)
@@ -3056,6 +3696,41 @@ void MainWindow::on_actionQuantification_triggered () {
     afficherQuantification (label);
 }
 
+void MainWindow::on_actionChangementDEchelle_triggered () {
+    QLabel* label = getFocusedLabel();
+    if (label == NULL)
+        return;
+    afficherChangementDEchelle (label);
+}
+
+void MainWindow::on_actionRotation_triggered () {
+    QLabel* label = getFocusedLabel();
+    if (label == NULL)
+        return;
+    afficherRotation (label);
+}
+
+void MainWindow::on_actionRotationInterpolee_triggered () {
+    QLabel* label = getFocusedLabel();
+    if (label == NULL)
+        return;
+    afficherRotationInterpolee (label);
+}
+
+void MainWindow::on_actionTransposee_triggered () {
+    QLabel* label = getFocusedLabel();
+    if (label == NULL)
+        return;
+    afficherTransposee (label);
+}
+
+void MainWindow::on_actionVuePerspective_triggered () {
+    QLabel* label = getFocusedLabel();
+    if (label == NULL)
+        return;
+    afficherVuePerspective (label);
+}
+
 void MainWindow::on_actionBruitUniforme_triggered () {
     QLabel* label = getFocusedLabel();
     if (label == NULL)
@@ -3112,6 +3787,13 @@ void MainWindow::on_actionMedian_triggered () {
     if (label == NULL)
         return;
     afficherMedian (label);
+}
+
+void MainWindow::on_actionVFiltre_triggered () {
+    QLabel* label = getFocusedLabel();
+    if (label == NULL)
+        return;
+    afficherVFiltre (label);
 }
 
 void MainWindow::on_actionFFT_triggered () {
@@ -3190,8 +3872,6 @@ void MainWindow::on_actionGainOffsetHistogramme_triggered () {
     if (label == NULL)
         return;
 
-
-
     QImage image = label->pixmap()->toImage();
     int seuil1, seuil2;
     bool ok;
@@ -3204,65 +3884,10 @@ void MainWindow::on_actionGainOffsetHistogramme_triggered () {
     double valeurMin = seuil1;
     double valeurMax = seuil2;
 
-
-
     cv::Mat bgrMat;
     QImageTocvMat(argbImage, bgrMat);
-
-    /*int min_0 = 256, min_1 = 256, min_2 = 256;
-    int max_0 = -1, max_1 = -1, max_2 = -1;
-    int i_0 = 0, i_1 = 0, i_2 = 0;
-    cv::MatIterator_<cv::Vec3b> it, end;
-    for(it = bgrMat.begin<cv::Vec3b>(), end = bgrMat.end<cv::Vec3b>(); it != end; ++it) {
-        i_0 = (*it)[0];
-        i_1 = (*it)[1];
-        i_2 = (*it)[2];
-        if (i_0 < min_0) min_0 = i_0;
-        if (i_0 > max_0) max_0 = i_0;
-        if (i_1 < min_1) min_1 = i_1;
-        if (i_1 > max_1) max_1 = i_1;
-        if (i_2 < min_2) min_2 = i_2;
-        if (i_2 > max_2) max_2 = i_2;
-    }//qDebug() << min_0 << ' ' << max_0;
-    double m_0 = (valeurMax - valeurMin)/(max_0 - min_0);
-    double b_0 = valeurMin - m_0 * min_0;
-    double m_1 = (valeurMax - valeurMin)/(max_1 - min_1);
-    double b_1 = valeurMin - m_1 * min_1;
-    double m_2 = (valeurMax - valeurMin)/(max_2 - min_2);
-    double b_2 = valeurMin - m_2 * min_2;
-    uchar lookup_0 [256], lookup_1 [256], lookup_2 [256];
-
-    for(int i = 0; i < min_0; i++)
-        lookup_0[i] = 0;
-    for(int i = min_0; i <= max_0; i++)
-        lookup_0[i] = round(m_0 * i + b_0);
-    for(int i = max_0 + 1; i < 256; i++)
-        lookup_0[i] = 0;
-
-    for(int i = 0; i < min_1; i++)
-        lookup_1[i] = 0;
-    for(int i = min_1; i <= max_1; i++)
-        lookup_1[i] = round(m_1 * i + b_1);
-    for(int i = max_0 + 1; i < 256; i++)
-        lookup_1[i] = 0;
-
-    for(int i = 0; i < min_2; i++)
-        lookup_2[i] = 0;
-    for(int i = min_2; i <= max_2; i++)
-        lookup_2[i] = round(m_2 * i + b_2);
-    for(int i = max_2 + 1; i < 256; i++)
-        lookup_2[i] = 0;
-
-    for(it = bgrMat.begin<cv::Vec3b>(), end = bgrMat.end<cv::Vec3b>(); it != end; ++it) {
-        (*it)[0] = lookup_0[(*it)[0]];
-        (*it)[1] = lookup_1[(*it)[1]];
-        (*it)[2] = lookup_2[(*it)[2]];
-    }*/
-
     cv::normalize(bgrMat, bgrMat, valeurMin, valeurMax, CV_MINMAX);
-
     cvMatToQImage(bgrMat, argbImage);
     creerFenetre(QPixmap::fromImage(argbImage), titre);
-
 }
 

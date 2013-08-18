@@ -104,6 +104,8 @@ private:
     void calculerHistogrammeNegatif (QImage& argbImage, QString titre);
     void afficherCalibration (QLabel* label);
     void calculerCalibration (QImage& argbImage, QString titre, double valeurMin, double valeurMax);
+    void afficherEgalisation (QLabel* label);
+    void calculerEgalisation (QImage& argbImage, QString titre);
     void afficherExponentielle (QLabel* label);
     void calculerExponentielle (QImage& argbImage, QString titre);
     void afficherLogarithmique (QLabel* label);
@@ -130,6 +132,16 @@ private:
     void calculerPlanBinaire (QImage& argbImage, QString titre, int bit);
     void afficherQuantification (QLabel* label);
     void calculerQuantification (QImage& argbImage, QString titre, int bits);
+    void afficherChangementDEchelle (QLabel* label);
+    void calculerChangementDEchelle (QImage& argbImage, QString titre, int dimX, int dimY);
+    void afficherRotation (QLabel* label);
+    void calculerRotation (QImage& argbImage, QString titre, double angle, double zoom);
+    void afficherRotationInterpolee (QLabel* label);
+    void calculerRotationInterpolee (QImage& argbImage, QString titre, double angle, double zoom);
+    void afficherTransposee (QLabel* label);
+    void calculerTransposee (QImage& argbImage, QString titre);
+    void afficherVuePerspective (QLabel* label);
+    void calculerVuePerspective (QImage& argbImage, QString titre);
     void afficherBruitUniforme (QLabel* label);
     void calculerBruitUniforme (QImage& argbImage, QString titre, int valeur = 127);
     void afficherBruitPoivreEtSel (QLabel* label);
@@ -151,6 +163,8 @@ private:
     void calculerLaplacien (QImage& argbImage, QString titre, int ksize = 3, double gain = 1, double offset = 0, int borderType = cv::BORDER_DEFAULT);
     void afficherMedian (QLabel* label);
     void calculerMedian (QImage& argbImage, QString titre, int ksize = 3);
+    void afficherVFiltre (QLabel* label);
+    void calculerVFiltre (QImage& argbImage, QString titre, int ksize = 3);
     void afficherFFT (QLabel* label);
     void calculerFFT (QImage& argbImage, QString titre);
 
@@ -164,7 +178,7 @@ private:
     void afficherGradientSobel (QLabel* label, TypeSobel type);
     void calculerGradientSobel (QImage& argbImage, QString titre, TypeSobel, int ksize = 3, double gain = 1, double offset = 0, int borderType = cv::BORDER_DEFAULT);
     void afficherGradientPrewitt (QLabel* label, TypePrewitt type);
-    void calculerGradientPrewitt (QImage& argbImage, QString titre, TypePrewitt type, int ksize = 3, double gain = 1, double offset = 0, int borderType = cv::BORDER_DEFAULT);
+    void calculerGradientPrewitt (QImage& argbImage, QString titre, TypePrewitt type, double gain = 1, double offset = 0, int borderType = cv::BORDER_DEFAULT);
 
 private slots:
     void on_actionOuvrir_triggered ();
@@ -177,7 +191,8 @@ private slots:
     void on_actionAffichage_triggered ();
     void on_actionRecadrage_triggered ();
     void on_actionNegatif_triggered ();
-    void on_actionCalibration_triggered ();void on_actionGainOffsetHistogramme_triggered ();
+    void on_actionCalibration_triggered ();
+    void on_actionEgalisation_triggered ();
     void on_actionLogarithmique_triggered ();
     void on_actionExponentielle_triggered ();
     void on_actionAddition_triggered ();
@@ -191,6 +206,11 @@ private slots:
     void on_actionNOT_triggered ();
     void on_actionPlanBinaire_triggered ();
     void on_actionQuantification_triggered ();
+    void on_actionChangementDEchelle_triggered ();
+    void on_actionRotation_triggered ();
+    void on_actionRotationInterpolee_triggered ();
+    void on_actionTransposee_triggered ();
+    void on_actionVuePerspective_triggered ();
     void on_actionBruitUniforme_triggered ();
     void on_actionBruitPoivreEtSel_triggered ();
     void on_actionUniforme_triggered ();
@@ -201,6 +221,7 @@ private slots:
     void on_actionMoyenneurNxN_triggered ();
     void on_actionLaplacien_triggered ();
     void on_actionMedian_triggered ();
+    void on_actionVFiltre_triggered ();
     void on_actionFFT_triggered ();
 
     //menu segmentation
@@ -212,7 +233,7 @@ private slots:
     void on_actionGradientYSobel_triggered ();
     void on_actionNormePrewitt_triggered ();
     void on_actionGradientXPrewitt_triggered ();
-    void on_actionGradientYPrewitt_triggered ();
+    void on_actionGradientYPrewitt_triggered ();void on_actionGainOffsetHistogramme_triggered ();
 };
 
 void QImageTocvMat (const QImage& in, cv::Mat& out);
