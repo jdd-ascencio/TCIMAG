@@ -65,6 +65,8 @@ public:
     static const char* PATTERN_OUVERTURE_IMAGES_QT_ET_OPENCV;
     static const char* DOSSIER_DEFAUT_OUVERTURE_IMAGES;
     static const int BORDER_TYPE = cv::BORDER_DEFAULT;
+    static const int SEUILLAGE_VALEUR_MAX = 255;
+    static const int SEUILLAGE_VALEUR_MIL = 127;
 
     explicit MainWindow(QWidget* parent = 0);
     ~MainWindow();
@@ -170,11 +172,20 @@ private:
 
     //menu segmentation
     void afficherSeuillageManuelSimple (QLabel* label);
-    void calculerSeuillageManuelSimple (QImage& argbImage, QString titre, double seuil, double maxval = 255);
+    void calculerSeuillageManuelSimple (QImage& argbImage, QString titre, double seuil, double maxval = SEUILLAGE_VALEUR_MAX);
+    void afficherSeuillageVarianceSimple (QLabel* label);
+    void calculerSeuillageVarianceSimple (QImage& argbImage, QString titre, double seuil, double maxval = SEUILLAGE_VALEUR_MAX);
     void afficherSeuillageManuelDouble (QLabel* label);
-    void calculerSeuillageManuelDouble (QImage& argbImage, QString titre, double seuilBas, double seuilHaut, double minVal = 0, double midVal = 127, double maxVal = 255);
+    void calculerSeuillageManuelDouble (QImage& argbImage, double seuilBas, double seuilHaut, double minVal = 0, double midVal = SEUILLAGE_VALEUR_MIL, double maxVal = SEUILLAGE_VALEUR_MAX);
+    void afficherSeuillageVarianceDouble (QLabel* label);
+    void calculerSeuillageVarianceDouble (QImage& argbImage, QString titre, double seuilBas, double seuilHaut, double minVal = 0, double midVal = SEUILLAGE_VALEUR_MIL, double maxVal = SEUILLAGE_VALEUR_MAX);
     void afficherSeuillageParHysteresis (QLabel* label);
     void calculerSeuillageParHysteresis (QImage& argbImage, QString titre, int seuilBas, int seuilHaut, int ksize = 3, bool utiliserNormeL2 = false);
+    void traiterPixelHysteresisfw (cv::Mat& bgrMat, cv::Mat& validation, int x, int y, int cols, int rows);
+    void traiterPixelHysteresisbw (cv::Mat& bgrMat, cv::Mat& validation, int x, int y, int cols, int rows);
+    void afficherBiseuillage (QLabel* label);
+    void calculerBiseuillage (QImage& argbImage, QString titre, int seuilBas, int seuilHaut);
+    void traiterPixelBiseuillage (cv::Mat& bgrMat, cv::Mat& validation, int x, int y, int cols, int rows);
     void afficherGradientSobel (QLabel* label, TypeSobel type);
     void calculerGradientSobel (QImage& argbImage, QString titre, TypeSobel, int ksize = 3, double gain = 1, double offset = 0, int borderType = cv::BORDER_DEFAULT);
     void afficherGradientPrewitt (QLabel* label, TypePrewitt type);
@@ -226,17 +237,21 @@ private slots:
 
     //menu segmentation
     void on_actionManuelSimple_triggered ();
+    void on_actionVarianceSimple_triggered ();
     void on_actionManuelDouble_triggered ();
+    void on_actionVarianceDouble_triggered ();
     void on_actionSeuillageParHysteresis_triggered ();
+    void on_actionBiseuillage_triggered ();
     void on_actionNormeSobel_triggered ();
     void on_actionGradientXSobel_triggered ();
     void on_actionGradientYSobel_triggered ();
     void on_actionNormePrewitt_triggered ();
     void on_actionGradientXPrewitt_triggered ();
-    void on_actionGradientYPrewitt_triggered ();void on_actionGainOffsetHistogramme_triggered ();
+    void on_actionGradientYPrewitt_triggered ();
 };
 
 void QImageTocvMat (const QImage& in, cv::Mat& out);
 void cvMatToQImage (const cv::Mat& in, QImage& out);
+void Prewitt(cv::InputArray _src, cv::OutputArray _dst, int ddepth, int dx, int dy, double gain = 1, double offset = 0, int borderType = cv::BORDER_DEFAULT);
 
 #endif // MAINWINDOW_H
