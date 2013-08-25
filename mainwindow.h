@@ -53,6 +53,7 @@ namespace Ui {
 
   enum TypeSobel {SOBEL_NORME, SOBEL_X, SOBEL_Y};
   enum TypePrewitt {PREWITT_NORME, PREWITT_X, PREWITT_Y};
+  enum CodePalette {CVT_COLOR_INVERSE, THERMAL, CVT_COLOR, MRI, COLD_TO_HOT, JET};
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -65,14 +66,11 @@ public:
     static const char* PATTERN_OUVERTURE_IMAGES_QT_ET_OPENCV;
     static const char* DOSSIER_DEFAUT_OUVERTURE_IMAGES;
     static const int BORDER_TYPE = cv::BORDER_DEFAULT;
-    static const int SEUILLAGE_VALEUR_MAX = 255;
     static const int SEUILLAGE_VALEUR_MIL = 127;
+    static const int SEUILLAGE_VALEUR_MAX = 255;
 
     explicit MainWindow(QWidget* parent = 0);
     ~MainWindow();
-
-    template<class T>
-    QObject* findFirstChildClassOf(const QList<QObject*> &children);
 
 private:
     Ui::MainWindow* ui;
@@ -82,20 +80,29 @@ private:
 
     bool eventFilter (QObject* watched, QEvent* e);
 
-    void ouvrirImage (const char* nomFichier);
-    const QPixmap imageToQPixmap (const char* nomFichier);
-    void creerFenetre (const QPixmap& pixmap, const QString& titre);
-
     QScrollArea* getFocusedArea ();
     QScrollArea* getFirstUnfocusedArea ();
     QLabel* getFocusedLabel ();
     QLabel* getFirstUnfocusedLabel ();
     QLabel* getLabelInArea (QScrollArea* scrollArea);
+    template<class T>
+    T* findFirstChildClassOf(const QList<QObject*> &children);
 
+
+    //menu fichier
+    void ouvrirImage (const char* nomFichier);
+    void creerFenetre (const QPixmap& pixmap, const QString& titre);
+    const QPixmap imageToQPixmap (const char* nomFichier);
+    void fermerTout();
+    void detruire(QScrollArea* scrollArea);
+
+    //menu affichage
+    void scaleImage (QScrollArea* scrollArea, double facteur);
     void adjustScrollBar (QScrollBar* scrollBar, double facteur);
     void updateZoomActions (QLabel* image);
-
-    void scaleImage (QScrollArea* scrollArea, double facteur);
+    void afficherPalette (QLabel* label, CodePalette code);
+    void calculerPalette (QImage& argbImage, QString titre, CodePalette code);
+    void dupliquer (QLabel* label);
 
     //menu outils
     void afficherHistogramme (QLabel* label);
@@ -180,7 +187,7 @@ private:
     void afficherSeuillageVarianceDouble (QLabel* label);
     void calculerSeuillageVarianceDouble (QImage& argbImage, QString titre, double seuilBas, double seuilHaut, double minVal = 0, double midVal = SEUILLAGE_VALEUR_MIL, double maxVal = SEUILLAGE_VALEUR_MAX);
     void afficherSeuillageParHysteresis (QLabel* label);
-    void calculerSeuillageParHysteresis (QImage& argbImage, QString titre, int seuilBas, int seuilHaut, int ksize = 3, bool utiliserNormeL2 = false);
+    void calculerSeuillageParHysteresis (QImage& argbImage, QString titre, int seuilBas, int seuilHaut);
     void traiterPixelHysteresisfw (cv::Mat& bgrMat, cv::Mat& validation, int x, int y, int cols, int rows);
     void traiterPixelHysteresisbw (cv::Mat& bgrMat, cv::Mat& validation, int x, int y, int cols, int rows);
     void afficherBiseuillage (QLabel* label);
@@ -192,11 +199,21 @@ private:
     void calculerGradientPrewitt (QImage& argbImage, QString titre, TypePrewitt type, double gain = 1, double offset = 0, int borderType = cv::BORDER_DEFAULT);
 
 private slots:
+    //menu fichier
     void on_actionOuvrir_triggered ();
+    void on_actionFermerTout_triggered ();
 
+    //menu affichage
     void on_actionTailleNormale_triggered ();
     void on_actionZoomIn_triggered ();
     void on_actionZoomOut_triggered ();
+    void on_actionCvtColorInverse_triggered ();
+    void on_actionThermal_triggered ();
+    void on_actionCvtColor_triggered ();
+    void on_actionMRI_triggered ();
+    void on_actionColdToHot_triggered ();
+    void on_actionJet_triggered ();
+    void on_actionDupliquer_triggered ();
 
     //menu outils
     void on_actionAffichage_triggered ();
@@ -250,8 +267,9 @@ private slots:
     void on_actionGradientYPrewitt_triggered ();
 };
 
+double interpolatationLineaire (double val, double y0, double x0, double y1, double x1);
+void Prewitt(cv::InputArray _src, cv::OutputArray _dst, int ddepth, int dx, int dy, double gain = 1, double offset = 0, int borderType = cv::BORDER_DEFAULT);
 void QImageTocvMat (const QImage& in, cv::Mat& out);
 void cvMatToQImage (const cv::Mat& in, QImage& out);
-void Prewitt(cv::InputArray _src, cv::OutputArray _dst, int ddepth, int dx, int dy, double gain = 1, double offset = 0, int borderType = cv::BORDER_DEFAULT);
 
 #endif // MAINWINDOW_H

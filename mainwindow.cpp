@@ -73,43 +73,6 @@ const char* MainWindow::DOSSIER_DEFAUT_OUVERTURE_IMAGES = "./../TCIMAG_ressource
 
 
 
-void Prewitt(cv::InputArray _src, cv::OutputArray _dst, int ddepth, int dx, int dy, double gain, double offset, int borderType) {
-    cv::Mat src = _src.getMat();
-    if (ddepth < 0)
-        ddepth = src.depth();
-    _dst.create(src.size(), CV_MAKETYPE(ddepth, src.channels()));
-    cv::Mat dst = _dst.getMat();
-    int ktype = std::max(CV_32F, std::max(ddepth, src.depth()));
-    cv::Mat kx, ky;
-    const int ksize = 3;
-    CV_Assert(ktype == CV_32F || ktype == CV_64F);
-    ((cv::OutputArray)kx).create(ksize, 1, ktype, -1, true);
-    ((cv::OutputArray)ky).create(ksize, 1, ktype, -1, true);
-    cv::Mat _kx = ((cv::OutputArray)kx).getMat();
-    cv::Mat _ky = ((cv::OutputArray)ky).getMat();
-    CV_Assert(dx >= 0 && dy >= 0 && dx+dy == 1);
-    for(int k = 0; k < 2; k++) {
-        cv::Mat* kernel = k == 0 ? &_kx : &_ky;
-        int order = k == 0 ? dx : dy;
-        int kerI[3];
-        if( order == 0 )
-            kerI[0] = 1, kerI[1] = 1, kerI[2] = 1;
-        else if( order == 1 )
-            kerI[0] = -1, kerI[1] = 0, kerI[2] = 1;
-        cv::Mat temp(kernel->rows, kernel->cols, CV_32S, &kerI[0]);
-        double scale = order == 1 ? 1. : 1./32;
-        temp.convertTo(*kernel, ktype, scale);
-    }
-    if (gain != 1) {
-        // usually the smoothing part is the slowest to compute, so try to scale it instead of the faster differenciating part
-        if(dx == 0)
-            kx *= gain;
-        else
-            ky *= gain;
-    }
-    cv::sepFilter2D(src, dst, ddepth, kx, ky, cv::Point(-1,-1), offset, borderType);
-}
-
 MainWindow::MainWindow (QWidget* parent) : QMainWindow (parent), ui (new Ui::MainWindow) {
     ui->setupUi(this);
     rng = cv::RNG(cv::getTickCount());
@@ -123,9 +86,11 @@ MainWindow::MainWindow (QWidget* parent) : QMainWindow (parent), ui (new Ui::Mai
     //ouvrirImage("../TCIMAG_ressources/lena.ppm");
     //ouvrirImage("../TCIMAG_ressources/lena.tiff");
 
+    ouvrirImage("../TCIMAG_ressources/lenaGray.bmp");
     //ouvrirImage("../TCIMAG_ressources/QUITO.PNG");
-    ouvrirImage("../TCIMAG_ressources/RONDELLE.PNG");
-    ouvrirImage("../TCIMAG_ressources/SPOT.PNG");
+    //ouvrirImage("../TCIMAG_ressources/RONDELLE.PNG");
+    //ouvrirImage("../TCIMAG_ressources/SPOT.PNG");
+    //ouvrirImage("../TCIMAG_ressources/BRUIT.PNG");
 
     //PARTIE 1
     //ouvrirImage("../TCIMAG_ressources/AQUITAIN.PNG");
@@ -157,6 +122,19 @@ MainWindow::MainWindow (QWidget* parent) : QMainWindow (parent), ui (new Ui::Mai
     //ouvrirImage("../TCIMAG_ressources/OBJETS.PNG");
     //ouvrirImage("../TCIMAG_ressources/RONDELLE.PNG");
     //ouvrirImage("../TCIMAG_ressources/SPOT.PNG");
+
+    //menu fichier
+    ui->actionFermerTout->setEnabled(true);
+
+    //menu affichage
+    ui->actionTailleNormale->setEnabled(true);
+    ui->actionCvtColorInverse->setEnabled(true);
+    ui->actionThermal->setEnabled(true);
+    ui->actionCvtColor->setEnabled(true);
+    ui->actionMRI->setEnabled(true);
+    ui->actionColdToHot->setEnabled(true);
+    ui->actionJet->setEnabled(true);
+    ui->actionDupliquer->setEnabled(true);
 
     //menu outils
     ui->actionAffichage->setEnabled(true);
@@ -220,6 +198,61 @@ MainWindow::~MainWindow () {
 ///
 ///
 
+double interpolatationLineaire (double val, double y0, double x0, double y1, double x1) {
+    return (val-x0)*(y1-y0)/(x1-x0) + y0;
+}
+
+void Prewitt(cv::InputArray _src, cv::OutputArray _dst, int ddepth, int dx, int dy, double gain, double offset, int borderType) {
+    cv::Mat src = _src.getMat();
+    if (ddepth < 0)
+        ddepth = src.depth();
+    _dst.create(src.size(), CV_MAKETYPE(ddepth, src.channels()));
+    cv::Mat dst = _dst.getMat();
+    int ktype = std::max(CV_32F, std::max(ddepth, src.depth()));
+    cv::Mat kx, ky;
+    const int ksize = 3;
+    CV_Assert(ktype == CV_32F || ktype == CV_64F);
+    ((cv::OutputArray)kx).create(ksize, 1, ktype, -1, true);
+    ((cv::OutputArray)ky).create(ksize, 1, ktype, -1, true);
+    cv::Mat _kx = ((cv::OutputArray)kx).getMat();
+    cv::Mat _ky = ((cv::OutputArray)ky).getMat();
+    CV_Assert(dx >= 0 && dy >= 0 && dx+dy == 1);
+    for(int k = 0; k < 2; k++) {
+        cv::Mat* kernel = k == 0 ? &_kx : &_ky;
+        int order = k == 0 ? dx : dy;
+        int kerI[3];
+        if( order == 0 )
+            kerI[0] = 1, kerI[1] = 1, kerI[2] = 1;
+        else if( order == 1 )
+            kerI[0] = -1, kerI[1] = 0, kerI[2] = 1;
+        cv::Mat temp(kernel->rows, kernel->cols, CV_32S, &kerI[0]);
+        double scale = order == 1 ? 1. : 1./32;
+        temp.convertTo(*kernel, ktype, scale);
+    }
+    if (gain != 1) {
+        // usually the smoothing part is the slowest to compute, so try to scale it instead of the faster differenciating part
+        if(dx == 0)
+            kx *= gain;
+        else
+            ky *= gain;
+    }
+    cv::sepFilter2D(src, dst, ddepth, kx, ky, cv::Point(-1,-1), offset, borderType);
+}
+
+void QImageTocvMat(const QImage& in, cv::Mat& out) {
+    QImage img = in.convertToFormat(QImage::Format_RGB888, Qt::ColorOnly);
+    ////cv::Mat (int _rows, int _cols, int _type, void* _data, size_t _step=AUTO_STEP);
+    cv::Mat matRGB(img.height(), img.width(), CV_8UC3, img.bits(), img.bytesPerLine());
+    cv::cvtColor(matRGB, out, CV_RGB2BGR);
+}
+
+void cvMatToQImage(const cv::Mat& in, QImage& out) {
+    cv::Mat matRGB(in);
+    cv::cvtColor(in, matRGB, CV_BGR2RGB);
+    ////QImage::QImage ( const uchar * data, int width, int height, int bytesPerLine, Format format )
+    out = QImage((uchar*)matRGB.data, matRGB.cols, matRGB.rows, matRGB.step, QImage::Format_RGB888);
+}
+
 bool MainWindow::eventFilter (QObject* watched, QEvent* e) {
     if (e->type() == QEvent::MouseMove) {
         //// QLabel
@@ -249,113 +282,12 @@ bool MainWindow::eventFilter (QObject* watched, QEvent* e) {
     } else if (e->type() == QEvent::Close) {
         if (typeid(*watched) == typeid(QScrollArea)) {
             //std::cerr << "closed: " << typeid(*watched).name() << std::endl;
-            getLabelInArea((QScrollArea*) watched)->deleteLater();
+            /*getLabelInArea((QScrollArea*) watched)->deleteLater();
             watched->deleteLater();
-            watched->parent()->deleteLater();
+            watched->parent()->deleteLater();*/detruire((QScrollArea*) watched);
         }
     }
     return QWidget::eventFilter(watched, e);
-}
-
-void QImageTocvMat(const QImage& in, cv::Mat& out) {
-    QImage img = in.convertToFormat(QImage::Format_RGB888, Qt::ColorOnly);
-    ////cv::Mat (int _rows, int _cols, int _type, void* _data, size_t _step=AUTO_STEP);
-    cv::Mat matRGB(img.height(), img.width(), CV_8UC3, img.bits(), img.bytesPerLine());
-    cv::cvtColor(matRGB, out, CV_RGB2BGR);
-}
-
-void cvMatToQImage(const cv::Mat& in, QImage& out) {
-    cv::Mat matRGB(in);
-    cv::cvtColor(in, matRGB, CV_BGR2RGB);
-    ////QImage::QImage ( const uchar * data, int width, int height, int bytesPerLine, Format format )
-    out = QImage((uchar*)matRGB.data, matRGB.cols, matRGB.rows, matRGB.step, QImage::Format_RGB888);
-}
-
-const QPixmap MainWindow::imageToQPixmap (const char* nomFichier) {
-    cv::Mat loadImg;
-    loadImg = cv::imread(nomFichier, CV_LOAD_IMAGE_COLOR);
-    if (!loadImg.data) {
-        std::cerr << "echec chargement image depuis fichier: " << nomFichier << std::endl;
-        return QPixmap();
-    }
-    QImage rgbImg;
-    cvMatToQImage(loadImg, rgbImg);
-    return QPixmap::fromImage(rgbImg);
-}
-
-void MainWindow::ouvrirImage (const char* nomFichier) {
-    QImage loadImg (nomFichier);
-    if (loadImg.isNull()) {
-        std::cerr << "echec chargement image depuis fichier: " << nomFichier << std::endl;
-        return;
-    }
-
-    ////OpenCV charge l'image
-    //creerFenetre (imageToQPixmap (nomFichier), QDir (tr (nomFichier)).absolutePath()); /// /home.../TCIMAG_ressources/lena.bmp
-    //creerFenetre (imageToQPixmap (nomFichier), QDir (tr (nomFichier)).canonicalPath());/// /home.../TCIMAG_ressources/lena.bmp
-    //creerFenetre (imageToQPixmap (nomFichier), QDir (tr (nomFichier)).path());         /// ../TCIMAG_ressources/lena.bmp
-    creerFenetre (imageToQPixmap (nomFichier), QDir (tr (nomFichier)).dirName());        /// lena.bmp
-    //creerFenetre (imageToQPixmap (nomFichier), QDir (tr (nomFichier)).homePath());     /// ~/
-    //creerFenetre (imageToQPixmap (nomFichier), QDir (tr (nomFichier)).tempPath());     /// /tmp
-    //creerFenetre (imageToQPixmap (nomFichier), QDir (tr (nomFichier)).rootPath());     /// /
-
-    ////Qt charge l'imageToQPixmap()
-    //creerFenetre (QPixmap::fromImage (loadImg), QDir (tr (nomFichier)).dirName());
-}
-
-void MainWindow::creerFenetre(const QPixmap& pixmap, const QString& titre = "") {
-    if (pixmap.isNull())
-        return;
-
-    QLabel* labelImage = new QLabel();
-    labelImage->setWindowFlags(Qt::FramelessWindowHint);
-    labelImage->setMouseTracking(true);
-    labelImage->installEventFilter(this);
-    labelImage->show();
-    labelImage->setScaledContents(true);
-    labelImage->setFixedSize(pixmap.size());
-    labelImage->setPixmap(pixmap);
-    scaleFactor[qHash(labelImage)] = 1.0;
-    windowTitle[qHash(labelImage)] = titre;
-
-    QScrollArea* scrollArea = new QScrollArea();
-    scrollArea->setWidget(labelImage);
-    scrollArea->installEventFilter(this);
-
-    QMdiSubWindow* subWindow = new QMdiSubWindow();
-    subWindow->setParent(this->centralWidget());
-    subWindow->setWindowTitle(titre);
-    subWindow->setMinimumSize ((int)(pixmap.width () / 5), (int)(pixmap.height () / 5));
-    subWindow->setWidget(scrollArea);
-    subWindow->show();
-}
-
-void MainWindow::scaleImage (QScrollArea* scrollArea, double facteur) {
-    QLabel* image = this->getLabelInArea(scrollArea);
-    QSize actuelle = image->pixmap()->size();
-    if (!this->scaleFactor.contains(qHash(image)))
-        return;
-    double scaleFactor = this->scaleFactor[qHash(image)] * facteur;
-    this->scaleFactor[qHash(image)] = scaleFactor;
-
-    image->setFixedSize(scaleFactor * actuelle);
-
-    adjustScrollBar (scrollArea->horizontalScrollBar(), scaleFactor);
-    adjustScrollBar (scrollArea->verticalScrollBar(), scaleFactor);
-
-    updateZoomActions(image);
-}
-
-void MainWindow::adjustScrollBar (QScrollBar* scrollBar, double facteur) {
-    scrollBar->setValue (int (facteur * scrollBar->value () + (facteur - 1) * scrollBar->pageStep () / 2));
-}
-
-void MainWindow::updateZoomActions (QLabel* image) {
-    if (!this->scaleFactor.contains(qHash(image)))
-        return;
-    double scaleFactor = this->scaleFactor[qHash(image)];
-    ui->actionZoomIn->setEnabled(scaleFactor < 3.0);
-    ui->actionZoomOut->setEnabled(scaleFactor > 0.333);
 }
 
 QScrollArea* MainWindow::getFocusedArea() {
@@ -374,10 +306,9 @@ QScrollArea* MainWindow::getFocusedArea() {
         return NULL;
     QScrollArea* scrollArea;
     for (int i = 0; i < children.size(); i++) {
-        child = findFirstChildClassOf<QScrollArea>(children.at(i)->children());
-        if (child == NULL)
+        scrollArea = findFirstChildClassOf<QScrollArea>(children.at(i)->children());
+        if (scrollArea == NULL)
             continue;
-        scrollArea = (QScrollArea*) child;
         if (scrollArea->hasFocus())
             return scrollArea;
     }
@@ -400,10 +331,9 @@ QScrollArea* MainWindow::getFirstUnfocusedArea() {
         return NULL;
     QScrollArea* scrollArea;
     for (int i = 0; i < children.size(); i++) {
-        child = findFirstChildClassOf<QScrollArea>(children.at(i)->children());
-        if (child == NULL)
+        scrollArea = findFirstChildClassOf<QScrollArea>(children.at(i)->children());
+        if (scrollArea == NULL)
             continue;
-        scrollArea = (QScrollArea*) child;
         if (!scrollArea->hasFocus() && scrollArea->isActiveWindow())
             return scrollArea;
     }
@@ -476,16 +406,627 @@ QLabel* MainWindow::getLabelInArea (QScrollArea* scrollArea) {
 }
 
 template<class T>
-QObject* MainWindow::findFirstChildClassOf(const QList<QObject*> &children) {
-    QObject* child = NULL;
+T* MainWindow::findFirstChildClassOf(const QList<QObject*> &children) {
+    T* child = NULL;
     for (int i = 0; i < children.size(); i++) {
         if (typeid(*children.at(i)) == typeid(T)) {
-            child = children.at(i);
+            child = (T*) children.at(i);
             break;
         } else
             child = NULL;
     }
     return child;
+}
+
+
+
+//menu fichier
+void MainWindow::ouvrirImage (const char* nomFichier) {
+    QImage loadImg (nomFichier);
+    if (loadImg.isNull()) {
+        this->statusBar()->showMessage(tr("Échec de lecture de l'image depuis le fichier: %1").arg(nomFichier));
+        return;
+    }
+
+    ////OpenCV charge l'image
+    //creerFenetre (imageToQPixmap (nomFichier), QDir (tr (nomFichier)).absolutePath()); /// /home.../TCIMAG_ressources/lena.bmp
+    //creerFenetre (imageToQPixmap (nomFichier), QDir (tr (nomFichier)).canonicalPath());/// /home.../TCIMAG_ressources/lena.bmp
+    //creerFenetre (imageToQPixmap (nomFichier), QDir (tr (nomFichier)).path());         /// ../TCIMAG_ressources/lena.bmp
+    creerFenetre (imageToQPixmap (nomFichier), QDir (tr (nomFichier)).dirName());        /// lena.bmp
+    //creerFenetre (imageToQPixmap (nomFichier), QDir (tr (nomFichier)).homePath());     /// ~/
+    //creerFenetre (imageToQPixmap (nomFichier), QDir (tr (nomFichier)).tempPath());     /// /tmp
+    //creerFenetre (imageToQPixmap (nomFichier), QDir (tr (nomFichier)).rootPath());     /// /
+
+    ////Qt charge l'imageToQPixmap()
+    //creerFenetre (QPixmap::fromImage (loadImg), QDir (tr (nomFichier)).dirName());
+}
+
+void MainWindow::creerFenetre(const QPixmap& pixmap, const QString& titre = "") {
+    if (pixmap.isNull())
+        return;
+
+    QLabel* labelImage = new QLabel();
+    labelImage->setWindowFlags(Qt::FramelessWindowHint);
+    labelImage->setMouseTracking(true);
+    labelImage->installEventFilter(this);
+    labelImage->show();
+    labelImage->setScaledContents(true);
+    labelImage->setFixedSize(pixmap.size());
+    labelImage->setPixmap(pixmap);
+    scaleFactor[qHash(labelImage)] = 1.0;
+    windowTitle[qHash(labelImage)] = titre;
+
+    QScrollArea* scrollArea = new QScrollArea();
+    scrollArea->setWidget(labelImage);
+    scrollArea->installEventFilter(this);
+
+    QMdiSubWindow* subWindow = new QMdiSubWindow();
+    subWindow->setParent(this->centralWidget());
+    subWindow->setWindowTitle(titre);
+    subWindow->setMinimumSize ((int)(pixmap.width () / 5), (int)(pixmap.height () / 5));
+    subWindow->setWidget(scrollArea);
+    subWindow->show();
+}
+
+const QPixmap MainWindow::imageToQPixmap (const char* nomFichier) {
+    cv::Mat loadImg;
+    loadImg = cv::imread(nomFichier, CV_LOAD_IMAGE_COLOR);
+    if (!loadImg.data) {
+        this->statusBar()->showMessage(tr("Échec de lecture de l'image depuis le fichier: %1").arg(nomFichier));
+        return QPixmap();
+    }
+    QImage rgbImg;
+    cvMatToQImage(loadImg, rgbImg);
+    return QPixmap::fromImage(rgbImg);
+}
+
+void MainWindow::fermerTout() {
+    QList<QObject*> children = ui->centralWidget->children();
+    if (children.isEmpty())
+        return;
+    QObject* child = findFirstChildClassOf<QWidget>(children);
+    if (child == NULL)
+        return;
+    children = child->children();
+    if (children.isEmpty())
+        return;
+    QScrollArea* scrollArea;
+    for (int i = 0; i < children.size(); i++) {
+        scrollArea = findFirstChildClassOf<QScrollArea>(children.at(i)->children());
+        if (scrollArea == NULL)
+            continue;
+        scrollArea->close();
+        //detruire(scrollArea);
+    }
+
+}
+
+void MainWindow::detruire(QScrollArea* scrollArea) {
+    if (scrollArea == NULL)
+        return;
+    getLabelInArea(scrollArea)->deleteLater();
+    scrollArea->deleteLater();
+    scrollArea->parent()->deleteLater();
+}
+
+//menu affichage
+void MainWindow::scaleImage (QScrollArea* scrollArea, double facteur) {
+    QLabel* image = this->getLabelInArea(scrollArea);
+    QSize actuelle = image->pixmap()->size();
+    if (!this->scaleFactor.contains(qHash(image)))
+        return;
+    double scaleFactor = this->scaleFactor[qHash(image)] * facteur;
+    this->scaleFactor[qHash(image)] = scaleFactor;
+
+    image->setFixedSize(scaleFactor * actuelle);
+
+    adjustScrollBar (scrollArea->horizontalScrollBar(), scaleFactor);
+    adjustScrollBar (scrollArea->verticalScrollBar(), scaleFactor);
+
+    updateZoomActions(image);
+}
+
+void MainWindow::adjustScrollBar (QScrollBar* scrollBar, double facteur) {
+    scrollBar->setValue (int (facteur * scrollBar->value () + (facteur - 1) * scrollBar->pageStep () / 2));
+}
+
+void MainWindow::updateZoomActions (QLabel* image) {
+    if (!this->scaleFactor.contains(qHash(image)))
+        return;
+    double scaleFactor = this->scaleFactor[qHash(image)];
+    ui->actionZoomIn->setEnabled(scaleFactor < 3.0);
+    ui->actionZoomOut->setEnabled(scaleFactor > 0.333);
+}
+
+void MainWindow::afficherPalette (QLabel* label, CodePalette code) {
+    QImage image = label->pixmap()->toImage();
+    QString titre = QString("Palette %1: ").arg(code == CVT_COLOR_INVERSE ? "cvtColor Inverse" : code == THERMAL ? "Thermal" : code == CVT_COLOR ? "cvtColor" : code == MRI ? "MRI" : code == COLD_TO_HOT ? "Cold-to-Hot" : code == JET ? "Jet" : "") + windowTitle[qHash(label)];
+    calculerPalette (image, titre, code);
+}
+
+void MainWindow::calculerPalette (QImage& argbImage, QString titre, CodePalette code) {
+    cv::Mat bgrMat;
+    QImageTocvMat(argbImage, bgrMat);
+
+    cv::Mat BlueLUT(1, 256, CV_8U);
+    cv::Mat GreenLUT(1, 256, CV_8U);
+    cv::Mat RedLUT(1, 256, CV_8U);
+    uchar* p;
+
+    switch (code) {
+    case CVT_COLOR_INVERSE:
+        p = BlueLUT.data;
+        for(int i = 0; i < 88; ++i)
+            p[i] = round(1/(3*0.114)*i);//+226;
+        for(int i = 88; i < 175; ++i)
+            p[i] = 255-round(1/(3*0.114)*i);
+        for(int i = 175; i < 256; ++i)
+            p[i] = round(1/(3*0.114)*i);
+
+        p = GreenLUT.data;
+        for(int i = 0; i < 256; ++i)
+            p[i] = cv::saturate_cast<uchar>(1/(3*0.587)*i);//+105;
+
+        p = RedLUT.data;
+        for(int i = 0; i < 256; ++i)
+            p[i] = cv::saturate_cast<uchar>(1/(3*0.299)*i);//+179;
+        break;
+
+    case THERMAL:
+        p = BlueLUT.data;
+        for( int i = 0; i < 15; ++i)
+            p[i] = 90 * i/15;
+        for( int i = 15; i < 195; ++i)
+            p[i] = 90 - (i-15) * 90/180;
+        for( int i = 195; i < 256; ++i)
+            p[i] = 255 * (i-180)/180;
+
+        p = GreenLUT.data;
+        for( int i = 0; i < 15; ++i)
+            p[i] = 0;
+        for( int i = 15; i < 195; ++i)
+            p[i] = 255 * (i-15)/180;
+        for( int i = 195; i < 256; ++i)
+            p[i] = 255;
+
+        p = RedLUT.data;
+        for( int i = 0; i < 25; ++i)
+            p[i] = 90 * i/15;
+        for( int i = 15; i < 195; ++i)
+            p[i] = 90 + (i-15) * 155/180;
+        for( int i = 195; i < 256; ++i)
+            p[i] = 255;
+        break;
+
+    case CVT_COLOR:
+        p = BlueLUT.data;
+        for(int i = 0; i < 29; ++i)
+            p[i] = 255;
+        for(int i = 29; i < 179; ++i)
+            p[i] = round(interpolatationLineaire(i, 255, 29, 0, 179));
+        for(int i = 179; i < 256; ++i)
+            p[i] = 0;
+
+        p = GreenLUT.data;
+        for(int i = 0; i < 29; ++i)
+            p[i] = round(interpolatationLineaire(i, 0, 0, 255, 29));
+        for(int i = 29; i < 179; ++i)
+            p[i] = 255;
+        for(int i = 179; i < 256; ++i)
+            p[i] = round(interpolatationLineaire(i, 255, 179, 0, 255));
+
+        p = RedLUT.data;
+        for(int i = 0; i < 29; ++i)
+            p[i] = 0;
+        for(int i = 29; i < 179; ++i)
+            p[i] = round(interpolatationLineaire(i, 0, 29, 255, 179));
+        for(int i = 179; i < 256; ++i)
+            p[i] = 255;
+        break;
+
+    case MRI:
+        p = BlueLUT.data;
+        for( int i = 0; i < 25; ++i)
+            p[i] = 255 * i/25;
+        for( int i = 25; i < 140; ++i)
+            p[i] = 255 - (int)((i-25) * 255/115);
+        for( int i = 140; i < 231; ++i)
+            p[i] = 0;
+        for( int i = 231; i < 256; ++i)
+            p[i] = 0;
+
+        p = GreenLUT.data;
+        for( int i = 0; i < 25; ++i)
+            p[i] = 0;
+        for( int i = 25; i < 140; ++i)
+            p[i] = 255 * (i-25)/115;
+        for( int i = 140; i < 231; ++i)
+            p[i] = 255 - (int)((i-115) * 255/115);
+        for( int i = 231; i < 256; ++i)
+            p[i] = 0;
+
+        p = RedLUT.data;
+        for( int i = 0; i < 25; ++i)
+            p[i] = 0;
+        for( int i = 25; i < 140; ++i)
+            p[i] = 0;
+        for( int i = 140; i < 231; ++i)
+            p[i] = 255 * (i-115)/115;
+        for( int i = 231; i < 256; ++i)
+            p[i] = 255;
+        break;
+
+    case COLD_TO_HOT:
+        p = BlueLUT.data;
+        for(int i = 0; i < 85; ++i)
+            p[i] = 255;
+        for(int i = 85; i < 170; ++i)
+            p[i] = round(interpolatationLineaire(i, 255, 85, 0, 170));
+        for(int i = 170; i < 256; ++i)
+            p[i] = 0;
+
+        p = GreenLUT.data;
+        for(int i = 0; i < 85; ++i)
+            p[i] = round(interpolatationLineaire(i, 0, 0, 255, 85));
+        for(int i = 85; i < 170; ++i)
+            p[i] = 255;
+        for(int i = 170; i < 256; ++i)
+            p[i] = round(interpolatationLineaire(i, 255, 170, 0, 255));
+
+        p = RedLUT.data;
+        for(int i = 0; i < 85;++i)
+            p[i] = 0;
+        for(int i = 85; i < 170; ++i)
+            p[i] = round(interpolatationLineaire(i, 0, 85, 255, 170));
+        for(int i = 170; i < 256; ++i)
+            p[i] = 255;
+        break;
+
+    case JET:
+        p = BlueLUT.data;
+        for(int i = 0; i < 32; ++i)
+            p[i] = round(interpolatationLineaire(i, 121, 0, 255,32));
+        for(int i = 32; i < 99; ++i)
+            p[i] = 255;
+        for(int i = 99; i < 159; ++i)
+            p[i] = round(interpolatationLineaire(i, 255, 99, 0, 159));
+        for(int i = 159; i < 223; ++i)
+            p[i] = 0;
+        for(int i = 223; i < 256; ++i)
+            p[i] = 0;
+
+        p = GreenLUT.data;
+        for(int i = 0; i < 32; ++i)
+            p[i] = 0;
+        for(int i = 32; i < 99; ++i)
+            p[i] = round(interpolatationLineaire(i, 0, 32, 255, 99));
+        for(int i = 99; i < 159; ++i)
+            p[i] = 255;
+        for(int i = 159; i < 223; ++i)
+            p[i] = round(interpolatationLineaire(i, 255, 159, 0, 223));
+        for(int i = 223; i < 256; ++i)
+            p[i] = 0;
+
+        p = RedLUT.data;
+        for(int i = 0; i < 32; ++i)
+            p[i] = 0;
+        for(int i = 32; i < 99; ++i)
+            p[i] = 0;
+        for(int i = 99; i < 159; ++i)
+            p[i] = round(interpolatationLineaire(i, 0, 99, 255, 159));
+        for(int i = 159; i < 223; ++i)
+            p[i] = 255;
+        for(int i = 223; i < 256; ++i)
+            p[i] = cv::saturate_cast<uchar>(interpolatationLineaire(i, 255, 223, 121, 255));
+        break;
+    }
+
+    //std::cerr << BlueLUT << std::endl;
+    //std::cerr << GreenLUT << std::endl;
+    //std::cerr << RedLUT << std::endl;
+
+    std::vector<cv::Mat> bgr_planes;
+    cv::split(bgrMat, bgr_planes);
+    cv::LUT(bgr_planes[0], BlueLUT, bgr_planes[0], 0);
+    cv::LUT(bgr_planes[1], GreenLUT, bgr_planes[1], 0);
+    cv::LUT(bgr_planes[2], RedLUT, bgr_planes[2], 0);
+    cv::merge(bgr_planes, bgrMat);
+
+    /*
+    uchar* p;
+    cv::Mat cvtColorBlueLUT(1, 256, CV_8U);
+    p = cvtColorBlueLUT.data;
+    for(int i = 0; i < 29; ++i)
+        p[i] = 255;
+    for(int i = 29; i < 179;)
+        p[i] = round(interpolatationLineaire(i++, 255, 29, 0, 179));
+    for(int i = 179; i < 256; ++i)
+        p[i] = 0;
+    std::cerr << cvtColorBlueLUT << std::endl;
+
+    cv::Mat cvtColorGreenLUT(1, 256, CV_8U);
+    p = cvtColorGreenLUT.data;
+    for(int i = 0; i < 29;)
+        p[i] = round(interpolatationLineaire(i++, 0, 0, 255, 29));
+    for(int i = 29; i < 179; ++i)
+        p[i] = 255;
+    for(int i = 179; i < 256; )
+        p[i] = round(interpolatationLineaire(i++, 255, 179, 0, 255));
+    std::cerr << cvtColorGreenLUT << std::endl;
+
+    cv::Mat cvtColorRedLUT(1, 256, CV_8U);
+    p = cvtColorRedLUT.data;
+    for(int i = 0; i < 29;++i)
+        p[i] = 0;
+    for(int i = 29; i < 179; )
+        p[i] = round(interpolatationLineaire(i++, 0, 29, 255, 179));
+    for(int i = 179; i < 256; ++i)
+        p[i] = 255;
+    std::cerr << cvtColorRedLUT << std::endl;
+
+    std::vector<cv::Mat> bgr_planes;
+    cv::split(bgrMat, bgr_planes);
+    cv::LUT(bgr_planes[0], cvtColorBlueLUT, bgr_planes[0], 0);
+    cv::LUT(bgr_planes[1], cvtColorGreenLUT, bgr_planes[1], 0);
+    cv::LUT(bgr_planes[2], cvtColorRedLUT, bgr_planes[2], 0);
+    cv::merge(bgr_planes, bgrMat);
+    */
+
+    /*
+    uchar* p;
+    cv::Mat cvtColorBlueLUT(1, 256, CV_8U);
+    p = cvtColorBlueLUT.data;
+    for(int i = 0; i < 88; ++i)
+        p[i] = round(1/(3*0.114)*i);//+226;
+    for(int i = 88; i < 175; ++i)
+        p[i] = 255-round(1/(3*0.114)*i);
+    for(int i = 175; i < 256; ++i)
+        p[i] = round(1/(3*0.114)*i);
+    std::cerr << cvtColorBlueLUT << std::endl;
+
+    cv::Mat cvtColorGreenLUT(1, 256, CV_8U);
+    p = cvtColorGreenLUT.data;
+    for(int i = 0; i < 256; ++i)
+        p[i] = cv::saturate_cast<uchar>(1/(3*0.587)*i);//+105;
+    std::cerr << cvtColorGreenLUT << std::endl;
+
+    cv::Mat cvtColorRedLUT(1, 256, CV_8U);
+    p = cvtColorRedLUT.data;
+    for(int i = 0; i < 256; ++i)
+        p[i] = cv::saturate_cast<uchar>(1/(3*0.299)*i);//+179;
+    std::cerr << cvtColorRedLUT << std::endl;
+
+    std::vector<cv::Mat> bgr_planes;
+    cv::split(bgrMat, bgr_planes);
+    cv::LUT(bgr_planes[0], cvtColorBlueLUT, bgr_planes[0], 0);
+    cv::LUT(bgr_planes[1], cvtColorGreenLUT, bgr_planes[1], 0);
+    cv::LUT(bgr_planes[2], cvtColorRedLUT, bgr_planes[2], 0);
+    cv::merge(bgr_planes, bgrMat);
+    */
+
+    /*
+    uchar* p;
+    cv::Mat cvtColorBlueLUT(1, 256, CV_8U);
+    p = cvtColorBlueLUT.data;
+    for(int i = 0; i < 29; ++i)
+        p[i] = 255;
+    for(int i = 29; i < 179;)
+        p[i] = round(interpolatationLineaire(i++, 255, 29, 0, 179));
+    for(int i = 179; i < 256; ++i)
+        p[i] = 0;
+    std::cerr << cvtColorBlueLUT << std::endl;
+
+    cv::Mat cvtColorGreenLUT(1, 256, CV_8U);
+    p = cvtColorGreenLUT.data;
+    for(int i = 0; i < 29;)
+        p[i] = round(interpolatationLineaire(i++, 0, 0, 255, 29));
+    for(int i = 29; i < 179; ++i)
+        p[i] = 255;
+    for(int i = 179; i < 256; )
+        p[i] = round(interpolatationLineaire(i++, 255, 179, 0, 255));
+    std::cerr << cvtColorGreenLUT << std::endl;
+
+    cv::Mat cvtColorRedLUT(1, 256, CV_8U);
+    p = cvtColorRedLUT.data;
+    for(int i = 0; i < 29;++i)
+        p[i] = 0;
+    for(int i = 29; i < 179; )
+        p[i] = round(interpolatationLineaire(i++, 0, 29, 255, 179));
+    for(int i = 179; i < 256; ++i)
+        p[i] = 255;
+    std::cerr << cvtColorRedLUT << std::endl;
+
+    std::vector<cv::Mat> bgr_planes;
+    cv::split(bgrMat, bgr_planes);
+    cv::LUT(bgr_planes[0], cvtColorBlueLUT, bgr_planes[0], 0);
+    cv::LUT(bgr_planes[1], cvtColorGreenLUT, bgr_planes[1], 0);
+    cv::LUT(bgr_planes[2], cvtColorRedLUT, bgr_planes[2], 0);
+    cv::merge(bgr_planes, bgrMat);
+    */
+
+    /*
+        uchar* p;
+        cv::Mat MRIBlueLUT(1, 256, CV_8U);
+        p = MRIBlueLUT.data;
+        for( int i = 0; i < 25; ++i)
+            p[i] = 255 * i/25;
+        for( int i = 25; i < 140; ++i)
+            p[i] = 255 - (int)((i-25) * 255/115);
+        for( int i = 140; i < 231; ++i)
+            p[i] = 0;
+        for( int i = 231; i < 256; ++i)
+            p[i] = 0;
+        //std::cerr << MRIBlueLUT << std::endl;
+
+        cv::Mat MRIGreenLUT(1, 256, CV_8U);
+        p = MRIGreenLUT.data;
+        for( int i = 0; i < 25; ++i)
+            p[i] = 0;
+        for( int i = 25; i < 140; ++i)
+            p[i] = 255 * (i-25)/115;
+        for( int i = 140; i < 231; ++i)
+            p[i] = 255 - (int)((i-115) * 255/115);
+        for( int i = 231; i < 256; ++i)
+            p[i] = 0;
+        //std::cerr << MRIGreenLUT << std::endl;
+
+        cv::Mat MRIRedLUT(1, 256, CV_8U);
+        p = MRIRedLUT.data;
+        for( int i = 0; i < 25; ++i)
+            p[i] = 0;
+        for( int i = 25; i < 140; ++i)
+            p[i] = 0;
+        for( int i = 140; i < 231; ++i)
+            p[i] = 255 * (i-115)/115;
+        for( int i = 231; i < 256; ++i)
+            p[i] = 255;
+        //std::cerr << MRIRedLUT << std::endl;
+
+        std::vector<cv::Mat> bgr_planes;
+        cv::split(bgrMat, bgr_planes);
+        cv::LUT(bgr_planes[0], MRIBlueLUT, bgr_planes[0], 0);
+        cv::LUT(bgr_planes[1], MRIGreenLUT, bgr_planes[1], 0);
+        cv::LUT(bgr_planes[2], MRIRedLUT, bgr_planes[2], 0);
+        cv::merge(bgr_planes, bgrMat);
+    */
+    /*
+        uchar* p;
+        cv::Mat ThermalBlueLUT(1, 256, CV_8U);
+        p = ThermalBlueLUT.data;
+        for( int i = 0; i < 15; ++i)
+            p[i] = 90 * i/15;
+        for( int i = 15; i < 195; ++i)
+            p[i] = 90 - (i-15) * 90/180;
+        for( int i = 195; i < 256; ++i)
+            p[i] = 255 * (i-180)/180;
+        std::cerr << ThermalBlueLUT << std::endl;
+
+        cv::Mat ThermalGreenLUT(1, 256, CV_8U);
+        p = ThermalGreenLUT.data;
+        for( int i = 0; i < 15; ++i)
+            p[i] = 0;
+        for( int i = 15; i < 195; ++i)
+            p[i] = 255 * (i-15)/180;
+        for( int i = 195; i < 256; ++i)
+            p[i] = 255;
+        std::cerr << ThermalGreenLUT << std::endl;
+
+        cv::Mat ThermalRedLUT(1, 256, CV_8U);
+        p = ThermalRedLUT.data;
+        for( int i = 0; i < 25; ++i)
+            p[i] = 90 * i/15;
+        for( int i = 15; i < 195; ++i)
+            p[i] = 90 + (i-15) * 155/180;
+        for( int i = 195; i < 256; ++i)
+            p[i] = 255;
+        std::cerr << ThermalRedLUT << std::endl;
+
+        std::vector<cv::Mat> bgr_planes;
+        cv::split(bgrMat, bgr_planes);
+        cv::LUT(bgr_planes[0], ThermalBlueLUT, bgr_planes[0], 0);
+        cv::LUT(bgr_planes[1], ThermalGreenLUT, bgr_planes[1], 0);
+        cv::LUT(bgr_planes[2], ThermalRedLUT, bgr_planes[2], 0);
+        cv::merge(bgr_planes, bgrMat);
+    */
+    /*
+    uchar* p;
+    cv::Mat JetBlueLUT(1, 256, CV_8U);
+    p = JetBlueLUT.data;
+    for(int i = 0; i < 32;)
+        p[i] = round(interpolatationLineaire(i++, 121, 0, 255,32));
+    for(int i = 32; i < 99; ++i)
+        p[i] = 255;
+    for(int i = 99; i < 159; )
+        p[i] = round(interpolatationLineaire(i++, 255, 99, 0, 159));
+    for(int i = 159; i < 223; ++i)
+        p[i] = 0;
+    for(int i = 223; i < 256; ++i)
+        p[i] = 0;
+    std::cerr << JetBlueLUT << std::endl;
+
+    cv::Mat JetGreenLUT(1, 256, CV_8U);
+    p = JetGreenLUT.data;
+    for(int i = 0; i < 32; ++i)
+        p[i] = 0;
+    for(int i = 32; i < 99; )
+        p[i] = round(interpolatationLineaire(i++, 0, 32, 255, 99));
+    for(int i = 99; i < 159; ++i)
+        p[i] = 255;
+    for(int i = 159; i < 223; )
+        p[i] = round(interpolatationLineaire(i++, 255, 159, 0, 223));
+    for(int i = 223; i < 256; ++i)
+        p[i] = 0;
+    std::cerr << JetGreenLUT << std::endl;
+
+    cv::Mat JetRedLUT(1, 256, CV_8U);
+    p = JetRedLUT.data;
+    for(int i = 0; i < 32; ++i)
+        p[i] = 0;
+    for(int i = 32; i < 99; ++i)
+        p[i] = 0;
+    for(int i = 99; i < 159; )
+        p[i] = round(interpolatationLineaire(i++, 0, 99, 255, 159));
+    for(int i = 159; i < 223; ++i)
+        p[i] = 255;
+    for(int i = 223; i < 256; )
+        p[i] = cv::saturate_cast<uchar>(interpolatationLineaire(i++, 255, 223, 121, 255));
+    std::cerr << JetRedLUT << std::endl;
+
+    std::vector<cv::Mat> bgr_planes;
+    cv::split(bgrMat, bgr_planes);
+    cv::LUT(bgr_planes[0], JetBlueLUT, bgr_planes[0], 0);
+    cv::LUT(bgr_planes[1], JetGreenLUT, bgr_planes[1], 0);
+    cv::LUT(bgr_planes[2], JetRedLUT, bgr_planes[2], 0);
+    cv::merge(bgr_planes, bgrMat);
+    */
+    /*
+    uchar* p;
+    cv::Mat C2HBlueLUT(1, 256, CV_8U);
+    p = C2HBlueLUT.data;
+    for(int i = 0; i < 85; ++i)
+        p[i] = 255;
+    for(int i = 85; i < 170;)
+        p[i] = round(interpolatationLineaire(i++, 255, 85, 0, 170));
+    for(int i = 170; i < 256; ++i)
+        p[i] = 0;
+    std::cerr << C2HBlueLUT << std::endl;
+
+    cv::Mat C2HGreenLUT(1, 256, CV_8U);
+    p = C2HGreenLUT.data;
+    for(int i = 0; i < 85;)
+        p[i] = round(interpolatationLineaire(i++, 0, 0, 255, 85));
+    for(int i = 85; i < 170; ++i)
+        p[i] = 255;
+    for(int i = 170; i < 256; )
+        p[i] = round(interpolatationLineaire(i++, 255, 170, 0, 255));
+    std::cerr << C2HGreenLUT << std::endl;
+
+    cv::Mat C2HRedLUT(1, 256, CV_8U);
+    p = C2HRedLUT.data;
+    for(int i = 0; i < 85;++i)
+        p[i] = 0;
+    for(int i = 85; i < 170; )
+        p[i] = round(interpolatationLineaire(i++, 0, 85, 255, 170));
+    for(int i = 170; i < 256; ++i)
+        p[i] = 255;
+    std::cerr << C2HRedLUT << std::endl;
+
+    std::vector<cv::Mat> bgr_planes;
+    cv::split(bgrMat, bgr_planes);
+    cv::LUT(bgr_planes[0], C2HBlueLUT, bgr_planes[0], 0);
+    cv::LUT(bgr_planes[1], C2HGreenLUT, bgr_planes[1], 0);
+    cv::LUT(bgr_planes[2], C2HRedLUT, bgr_planes[2], 0);
+    cv::merge(bgr_planes, bgrMat);
+    */
+
+    cvMatToQImage(bgrMat, argbImage);
+    creerFenetre(QPixmap::fromImage(argbImage), titre);
+}
+
+void MainWindow::dupliquer (QLabel* label) {
+    QImage image = label->pixmap()->toImage();
+    QString titre = windowTitle[qHash(label)];
+    creerFenetre(QPixmap::fromImage(image), titre);
 }
 
 //menu outils
@@ -2450,10 +2991,10 @@ void MainWindow::afficherSeuillageParHysteresis (QLabel* label) {
     if (!ok) return;
     this->statusBar()->showMessage(tr("Seuillage par Hystérésis(%1;%2): ").arg(seuil1).arg(seuil2));
     QString titre = QString("Seuillage par Hystérésis(%1;%2): ").arg(seuil1).arg(seuil2) + windowTitle[qHash(label)];
-    calculerSeuillageParHysteresis (image, titre, seuil1, seuil2, 3, true);///ratio seuilHaut/seuilBas preferablement entre 3:1 et 2:1
+    calculerSeuillageParHysteresis (image, titre, seuil1, seuil2);///ratio seuilHaut/seuilBas preferablement entre 3:1 et 2:1
 }
 
-void MainWindow::calculerSeuillageParHysteresis (QImage& argbImage, QString titre, int seuilBas, int seuilHaut, int ksize, bool utiliserNormeL2) {
+void MainWindow::calculerSeuillageParHysteresis (QImage& argbImage, QString titre, int seuilBas, int seuilHaut) {
     cv::Mat bgrMat;
     QImageTocvMat(argbImage, bgrMat);
 
@@ -2465,23 +3006,24 @@ void MainWindow::calculerSeuillageParHysteresis (QImage& argbImage, QString titr
     cv::Canny (gMat, edges, seuilBas, seuilHaut, ksize, utiliserNormeL2);
     cv::Mat dst (bgrMat.size(), bgrMat.type(), cv::Scalar::all(0));
     bgrMat.copyTo (dst, edges);*/
-    calculerSeuillageManuelDouble(argbImage, seuilBas, seuilHaut, 1, SEUILLAGE_VALEUR_MIL, SEUILLAGE_VALEUR_MAX);
+    calculerSeuillageManuelDouble(argbImage, seuilBas, seuilHaut, 0, SEUILLAGE_VALEUR_MIL, SEUILLAGE_VALEUR_MAX);
     QImageTocvMat(argbImage, bgrMat);
     cv::cvtColor(bgrMat, bgrMat, CV_BGR2GRAY);
     cv::Mat validationfw = bgrMat.clone(); //cv::Mat validation; bgrMat.convertTo(validation, CV_32F, 1., 0); cv::distanceTransform(validation, validation, CV_DIST_L1, 3);
     cv::Mat validationbw = bgrMat.clone();
     int rows = bgrMat.rows;
-    int cols = bgrMat.cols;
+    int cols = bgrMat.cols;cv::imshow("pre", bgrMat);
     for (int y = 0; y < rows; y++) {
         for (int x = 0; x < cols; x++) {
             traiterPixelHysteresisfw (bgrMat, validationfw, x, y, cols, rows);
         }
-    }
+    }cv::imshow("fw", bgrMat);
     for (int y = rows-1; y > -1; y--) {
         for (int x = cols-1; x > -1; x--) {
             traiterPixelHysteresisbw (bgrMat, validationbw, x, y, cols, rows);
         }
-    }
+    }cv::imshow("bw", bgrMat);
+    cv::threshold(bgrMat, bgrMat, SEUILLAGE_VALEUR_MIL+1, SEUILLAGE_VALEUR_MAX, cv::THRESH_BINARY);cv::imshow("thresh", bgrMat);
     cv::cvtColor(bgrMat, bgrMat, CV_GRAY2BGR);
 
     cvMatToQImage(bgrMat, argbImage);
@@ -2490,49 +3032,100 @@ void MainWindow::calculerSeuillageParHysteresis (QImage& argbImage, QString titr
 
 void MainWindow::traiterPixelHysteresisfw (cv::Mat& bgrMat, cv::Mat& validation, int x, int y, int cols, int rows) {
     uchar v; uchar* p = (uchar*) validation.data;
+    if (x > cols-1 || y > rows-1 || x < 0 || y < 0) return;
     v = p[y*cols+x];
     if(v == 0) return;
-    if (x < cols-1) {
-        if (y < rows-1) {
-            cv::Mat voisinage (bgrMat, cv::Rect(x, y, 2, 2));
-            if(v == SEUILLAGE_VALEUR_MAX) {
-                if(voisinage.at<uchar>(0, 1) == SEUILLAGE_VALEUR_MIL) voisinage.at<uchar>(0, 1) = 255;
-                if(voisinage.at<uchar>(1, 1) == SEUILLAGE_VALEUR_MIL) voisinage.at<uchar>(1, 1) = 255;
-                if(voisinage.at<uchar>(1, 0) == SEUILLAGE_VALEUR_MIL) voisinage.at<uchar>(1, 0) = 255;
-            }
-            traiterPixelHysteresisfw (bgrMat, validation, x+1, y, cols, rows);
-            traiterPixelHysteresisfw (bgrMat, validation, x+1, y+1, cols, rows);
-            traiterPixelHysteresisfw (bgrMat, validation, x, y+1, cols, rows);
-            if(v == SEUILLAGE_VALEUR_MIL) {
-                if(voisinage.at<uchar>(0, 1) == 255 || voisinage.at<uchar>(1, 1) == 255 || voisinage.at<uchar>(1, 0) == 255)
-                    voisinage.at<uchar>(0, 0) = 255;
+    if (x > 0) {
+        if (x < cols-1) {
+            if (y < rows-1) {
+                cv::Mat voisinage (bgrMat, cv::Rect(x-1, y, 3, 2));
+                if(v == SEUILLAGE_VALEUR_MAX) {
+                    if(voisinage.at<uchar>(0, 2) == SEUILLAGE_VALEUR_MIL) voisinage.at<uchar>(0, 2) = 255;
+                    if(voisinage.at<uchar>(1, 2) == SEUILLAGE_VALEUR_MIL) voisinage.at<uchar>(1, 2) = 255;
+                    if(voisinage.at<uchar>(1, 1) == SEUILLAGE_VALEUR_MIL) voisinage.at<uchar>(1, 1) = 255;
+                    if(voisinage.at<uchar>(1, 0) == SEUILLAGE_VALEUR_MIL) voisinage.at<uchar>(1, 0) = 255;
+                }
+                traiterPixelHysteresisfw (bgrMat, validation, x+1, y, cols, rows);
+                traiterPixelHysteresisfw (bgrMat, validation, x+1, y+1, cols, rows);
+                traiterPixelHysteresisfw (bgrMat, validation, x, y+1, cols, rows);
+                traiterPixelHysteresisfw (bgrMat, validation, x-1, y+1, cols, rows);
+                if(v == SEUILLAGE_VALEUR_MIL) {
+                    if(voisinage.at<uchar>(0, 2) == 255 || voisinage.at<uchar>(1, 2) == 255 || voisinage.at<uchar>(1, 1) == 255 || voisinage.at<uchar>(1, 0) == 255)
+                        voisinage.at<uchar>(0, 1) = 255;
+                }
+            } else {
+                cv::Mat voisinage (bgrMat, cv::Rect(x, y, 2, 1));
+                if(v == SEUILLAGE_VALEUR_MAX) {
+                    if(voisinage.at<uchar>(0, 1) == SEUILLAGE_VALEUR_MIL) voisinage.at<uchar>(0, 1) = 255;
+                }
+                traiterPixelHysteresisfw (bgrMat, validation, x+1, y, cols, rows);
+                if(v == SEUILLAGE_VALEUR_MIL) {
+                    if(voisinage.at<uchar>(0, 1) == 255)
+                        voisinage.at<uchar>(0, 0) = 255;
+                }
             }
         } else {
-            cv::Mat voisinage (bgrMat, cv::Rect(x, y, 2, 1));
-            if(v == SEUILLAGE_VALEUR_MAX) {
-                if(voisinage.at<uchar>(0, 1) == SEUILLAGE_VALEUR_MIL) voisinage.at<uchar>(0, 1) = 255;
-            }
-            traiterPixelHysteresisfw (bgrMat, validation, x+1, y, cols, rows);
-            if(v == SEUILLAGE_VALEUR_MIL) {
-                if(voisinage.at<uchar>(0, 1) == 255)
-                    voisinage.at<uchar>(0, 0) = 255;
+            if (y < rows-1) {
+                cv::Mat voisinage (bgrMat, cv::Rect(x-1, y, 2, 2));
+                if(v == SEUILLAGE_VALEUR_MAX) {
+                    if(voisinage.at<uchar>(1, 1) == SEUILLAGE_VALEUR_MIL) voisinage.at<uchar>(1, 1) = 255;
+                    if(voisinage.at<uchar>(1, 0) == SEUILLAGE_VALEUR_MIL) voisinage.at<uchar>(1, 0) = 255;
+                }
+                traiterPixelHysteresisfw (bgrMat, validation, x, y+1, cols, rows);
+                traiterPixelHysteresisfw (bgrMat, validation, x-1, y+1, cols, rows);
+                if(v == SEUILLAGE_VALEUR_MIL) {
+                    if(voisinage.at<uchar>(1, 1) == 255 || voisinage.at<uchar>(1, 0) == 255)
+                        voisinage.at<uchar>(0, 1) = 255;
+                }
+            } else {
+                //rien;
+                //cv::imshow("v", validation);cv::waitKey(30000);
+                //cv::imshow("b", bgrMat);cv::waitKey(30000);
             }
         }
     } else {
-        if (y < rows-1) {
-            cv::Mat voisinage (bgrMat, cv::Rect(x, y, 1, 2));
-            if(v == SEUILLAGE_VALEUR_MAX) {
-                if(voisinage.at<uchar>(1, 0) == SEUILLAGE_VALEUR_MIL) voisinage.at<uchar>(1, 0) = 255;
-            }
-            traiterPixelHysteresisfw (bgrMat, validation, x, y+1, cols, rows);
-            if(v == SEUILLAGE_VALEUR_MIL) {
-                if(voisinage.at<uchar>(1, 0) == 255)
-                    voisinage.at<uchar>(0, 0) = 255;
+        if (x < cols-1) {
+            if (y < rows-1) {
+                cv::Mat voisinage (bgrMat, cv::Rect(x, y, 2, 2));
+                if(v == SEUILLAGE_VALEUR_MAX) {
+                    if(voisinage.at<uchar>(0, 1) == SEUILLAGE_VALEUR_MIL) voisinage.at<uchar>(0, 1) = 255;
+                    if(voisinage.at<uchar>(1, 1) == SEUILLAGE_VALEUR_MIL) voisinage.at<uchar>(1, 1) = 255;
+                    if(voisinage.at<uchar>(1, 0) == SEUILLAGE_VALEUR_MIL) voisinage.at<uchar>(1, 0) = 255;
+                }
+                traiterPixelHysteresisfw (bgrMat, validation, x+1, y, cols, rows);
+                traiterPixelHysteresisfw (bgrMat, validation, x+1, y+1, cols, rows);
+                traiterPixelHysteresisfw (bgrMat, validation, x, y+1, cols, rows);
+                if(v == SEUILLAGE_VALEUR_MIL) {
+                    if(voisinage.at<uchar>(0, 1) == 255 || voisinage.at<uchar>(1, 1) == 255 || voisinage.at<uchar>(1, 0) == 255)
+                        voisinage.at<uchar>(0, 0) = 255;
+                }
+            } else {
+                cv::Mat voisinage (bgrMat, cv::Rect(x, y, 2, 1));
+                if(v == SEUILLAGE_VALEUR_MAX) {
+                    if(voisinage.at<uchar>(0, 1) == SEUILLAGE_VALEUR_MIL) voisinage.at<uchar>(0, 1) = 255;
+                }
+                traiterPixelHysteresisfw (bgrMat, validation, x+1, y, cols, rows);
+                if(v == SEUILLAGE_VALEUR_MIL) {
+                    if(voisinage.at<uchar>(0, 1) == 255)
+                        voisinage.at<uchar>(0, 0) = 255;
+                }
             }
         } else {
-            //rien;
-            //cv::imshow("v", validation);cv::waitKey(30000);
-            //cv::imshow("b", bgrMat);cv::waitKey(30000);
+            if (y < rows-1) {
+                cv::Mat voisinage (bgrMat, cv::Rect(x, y, 1, 2));
+                if(v == SEUILLAGE_VALEUR_MAX) {
+                    if(voisinage.at<uchar>(1, 0) == SEUILLAGE_VALEUR_MIL) voisinage.at<uchar>(1, 0) = 255;
+                }
+                traiterPixelHysteresisfw (bgrMat, validation, x, y+1, cols, rows);
+                if(v == SEUILLAGE_VALEUR_MIL) {
+                    if(voisinage.at<uchar>(1, 0) == 255)
+                        voisinage.at<uchar>(0, 0) = 255;
+                }
+            } else {
+                //rien;
+                //cv::imshow("v", validation);cv::waitKey(30000);
+                //cv::imshow("b", bgrMat);cv::waitKey(30000);
+            }
         }
     }
     p[y*cols+x] = 0;
@@ -2540,49 +3133,100 @@ void MainWindow::traiterPixelHysteresisfw (cv::Mat& bgrMat, cv::Mat& validation,
 
 void MainWindow::traiterPixelHysteresisbw (cv::Mat& bgrMat, cv::Mat& validation, int x, int y, int cols, int rows) {
     uchar v; uchar* p = (uchar*) validation.data;
+    if (x < 0 || y < 0 || x > cols-1 || y > rows-1) return;
     v = p[y*cols+x];
     if(v == 0) return;
-    if (x > 0) {
-        if (y > 0) {
-            cv::Mat voisinage (bgrMat, cv::Rect(x-1, y-1, 2, 2));
-            if(v == SEUILLAGE_VALEUR_MAX) {
-                if(voisinage.at<uchar>(1, 0) == SEUILLAGE_VALEUR_MIL) voisinage.at<uchar>(1, 0) = 255;
-                if(voisinage.at<uchar>(0, 0) == SEUILLAGE_VALEUR_MIL) voisinage.at<uchar>(0, 0) = 255;
-                if(voisinage.at<uchar>(0, 1) == SEUILLAGE_VALEUR_MIL) voisinage.at<uchar>(0, 1) = 255;
-            }
-            traiterPixelHysteresisbw (bgrMat, validation, x-1, y, cols, rows);
-            traiterPixelHysteresisbw (bgrMat, validation, x-1, y-1, cols, rows);
-            traiterPixelHysteresisbw (bgrMat, validation, x, y-1, cols, rows);
-            if(v == SEUILLAGE_VALEUR_MIL) {
-                if(voisinage.at<uchar>(1, 0) == 255 || voisinage.at<uchar>(0, 0) == 255 || voisinage.at<uchar>(0, 1) == 255)
-                    voisinage.at<uchar>(1, 1) = 255;
+    if (x < cols-1) {
+        if (x > 0) {
+            if (y > 0) {
+                cv::Mat voisinage (bgrMat, cv::Rect(x-1, y-1, 3, 2));
+                if(v == SEUILLAGE_VALEUR_MAX) {
+                    if(voisinage.at<uchar>(1, 0) == SEUILLAGE_VALEUR_MIL) voisinage.at<uchar>(1, 0) = 255;
+                    if(voisinage.at<uchar>(0, 0) == SEUILLAGE_VALEUR_MIL) voisinage.at<uchar>(0, 0) = 255;
+                    if(voisinage.at<uchar>(0, 1) == SEUILLAGE_VALEUR_MIL) voisinage.at<uchar>(0, 1) = 255;
+                    if(voisinage.at<uchar>(0, 2) == SEUILLAGE_VALEUR_MIL) voisinage.at<uchar>(0, 2) = 255;
+                }
+                traiterPixelHysteresisbw (bgrMat, validation, x-1, y, cols, rows);
+                traiterPixelHysteresisbw (bgrMat, validation, x-1, y-1, cols, rows);
+                traiterPixelHysteresisbw (bgrMat, validation, x, y-1, cols, rows);
+                traiterPixelHysteresisbw (bgrMat, validation, x+1, y-1, cols, rows);
+                if(v == SEUILLAGE_VALEUR_MIL) {
+                    if(voisinage.at<uchar>(1, 0) == 255 || voisinage.at<uchar>(0, 0) == 255 || voisinage.at<uchar>(0, 1) == 255 || voisinage.at<uchar>(0, 2))
+                        voisinage.at<uchar>(1, 1) = 255;
+                }
+            } else {
+                cv::Mat voisinage (bgrMat, cv::Rect(x-1, y, 2, 1));
+                if(v == SEUILLAGE_VALEUR_MAX) {
+                    if(voisinage.at<uchar>(0, 0) == SEUILLAGE_VALEUR_MIL) voisinage.at<uchar>(0, 0) = 255;
+                }
+                traiterPixelHysteresisbw (bgrMat, validation, x-1, y, cols, rows);
+                if(v == SEUILLAGE_VALEUR_MIL) {
+                    if(voisinage.at<uchar>(0, 0) == 255)
+                        voisinage.at<uchar>(0, 1) = 255;
+                }
             }
         } else {
-            cv::Mat voisinage (bgrMat, cv::Rect(x-1, y, 2, 1));
-            if(v == SEUILLAGE_VALEUR_MAX) {
-                if(voisinage.at<uchar>(0, 0) == SEUILLAGE_VALEUR_MIL) voisinage.at<uchar>(0, 0) = 255;
-            }
-            traiterPixelHysteresisbw (bgrMat, validation, x-1, y, cols, rows);
-            if(v == SEUILLAGE_VALEUR_MIL) {
-                if(voisinage.at<uchar>(0, 0) == 255)
-                    voisinage.at<uchar>(0, 1) = 255;
+            if (y > 0) {
+                cv::Mat voisinage (bgrMat, cv::Rect(x, y-1, 1, 2));
+                if(v == SEUILLAGE_VALEUR_MAX) {
+                    if(voisinage.at<uchar>(0, 0) == SEUILLAGE_VALEUR_MIL) voisinage.at<uchar>(0, 0) = 255;
+                    if(voisinage.at<uchar>(0, 1) == SEUILLAGE_VALEUR_MIL) voisinage.at<uchar>(0, 1) = 255;
+                }
+                traiterPixelHysteresisbw (bgrMat, validation, x, y-1, cols, rows);
+                traiterPixelHysteresisbw (bgrMat, validation, x+1, y-1, cols, rows);
+                if(v == SEUILLAGE_VALEUR_MIL) {
+                    if(voisinage.at<uchar>(0, 0) == 255 || voisinage.at<uchar>(0, 1) == 255)
+                        voisinage.at<uchar>(1, 0) = 255;
+                }
+            } else {
+                //rien;
+                //cv::imshow("v", validation);cv::waitKey(30000);
+                //cv::imshow("b", bgrMat);cv::waitKey(30000);
             }
         }
     } else {
-        if (y > 0) {
-            cv::Mat voisinage (bgrMat, cv::Rect(x, y-1, 1, 2));
-            if(v == SEUILLAGE_VALEUR_MAX) {
-                if(voisinage.at<uchar>(0, 0) == SEUILLAGE_VALEUR_MIL) voisinage.at<uchar>(0, 0) = 255;
-            }
-            traiterPixelHysteresisbw (bgrMat, validation, x, y-1, cols, rows);
-            if(v == SEUILLAGE_VALEUR_MIL) {
-                if(voisinage.at<uchar>(0, 0) == 255)
-                    voisinage.at<uchar>(1, 0) = 255;
+        if (x > 0) {
+            if (y > 0) {
+                cv::Mat voisinage (bgrMat, cv::Rect(x-1, y-1, 2, 2));
+                if(v == SEUILLAGE_VALEUR_MAX) {
+                    if(voisinage.at<uchar>(1, 0) == SEUILLAGE_VALEUR_MIL) voisinage.at<uchar>(1, 0) = 255;
+                    if(voisinage.at<uchar>(0, 0) == SEUILLAGE_VALEUR_MIL) voisinage.at<uchar>(0, 0) = 255;
+                    if(voisinage.at<uchar>(0, 1) == SEUILLAGE_VALEUR_MIL) voisinage.at<uchar>(0, 1) = 255;
+                }
+                traiterPixelHysteresisbw (bgrMat, validation, x-1, y, cols, rows);
+                traiterPixelHysteresisbw (bgrMat, validation, x-1, y-1, cols, rows);
+                traiterPixelHysteresisbw (bgrMat, validation, x, y-1, cols, rows);
+                if(v == SEUILLAGE_VALEUR_MIL) {
+                    if(voisinage.at<uchar>(1, 0) == 255 || voisinage.at<uchar>(0, 0) == 255 || voisinage.at<uchar>(0, 1) == 255)
+                        voisinage.at<uchar>(1, 1) = 255;
+                }
+            } else {
+                cv::Mat voisinage (bgrMat, cv::Rect(x-1, y, 2, 1));
+                if(v == SEUILLAGE_VALEUR_MAX) {
+                    if(voisinage.at<uchar>(0, 0) == SEUILLAGE_VALEUR_MIL) voisinage.at<uchar>(0, 0) = 255;
+                }
+                traiterPixelHysteresisbw (bgrMat, validation, x-1, y, cols, rows);
+                if(v == SEUILLAGE_VALEUR_MIL) {
+                    if(voisinage.at<uchar>(0, 0) == 255)
+                        voisinage.at<uchar>(0, 1) = 255;
+                }
             }
         } else {
-            //rien;
-            //cv::imshow("v", validation);cv::waitKey(30000);
-            //cv::imshow("b", bgrMat);cv::waitKey(30000);
+            if (y > 0) {
+                cv::Mat voisinage (bgrMat, cv::Rect(x, y-1, 1, 2));
+                if(v == SEUILLAGE_VALEUR_MAX) {
+                    if(voisinage.at<uchar>(0, 0) == SEUILLAGE_VALEUR_MIL) voisinage.at<uchar>(0, 0) = 255;
+                }
+                traiterPixelHysteresisbw (bgrMat, validation, x, y-1, cols, rows);
+                if(v == SEUILLAGE_VALEUR_MIL) {
+                    if(voisinage.at<uchar>(0, 0) == 255)
+                        voisinage.at<uchar>(1, 0) = 255;
+                }
+            } else {
+                //rien;
+                //cv::imshow("v", validation);cv::waitKey(30000);
+                //cv::imshow("b", bgrMat);cv::waitKey(30000);
+            }
         }
     }
     p[y*cols+x] = 0;
@@ -2612,7 +3256,7 @@ void MainWindow::calculerBiseuillage (QImage& argbImage, QString titre, int seui
     int cols = bgrMat.cols;
     for (int y = 0; y < rows; y++) {
         for (int x = 0; x < cols; x++) {
-            //traiterPixelBiseuillage (bgrMat, validation, x, y, cols, rows);
+            traiterPixelBiseuillage (bgrMat, validation, x, y, cols, rows);
         }
     }
     cv::cvtColor(bgrMat, bgrMat, CV_GRAY2BGR);
@@ -2621,7 +3265,7 @@ void MainWindow::calculerBiseuillage (QImage& argbImage, QString titre, int seui
     creerFenetre(QPixmap::fromImage(argbImage), titre);
 }
 
-/*
+
 void MainWindow::traiterPixelBiseuillage (cv::Mat& bgrMat, cv::Mat& validation, int x, int y, int cols, int rows) {
     uchar v; uchar* p = (uchar*) validation.data;
     v = p[y*cols+x];
@@ -2634,9 +3278,9 @@ void MainWindow::traiterPixelBiseuillage (cv::Mat& bgrMat, cv::Mat& validation, 
                 if(voisinage.at<uchar>(1, 1) == SEUILLAGE_VALEUR_MIL) voisinage.at<uchar>(1, 1) = 255;
                 if(voisinage.at<uchar>(1, 0) == SEUILLAGE_VALEUR_MIL) voisinage.at<uchar>(1, 0) = 255;
             }
-            traiterPixelHysteresis (bgrMat, validation, x+1, y, cols, rows);
-            traiterPixelHysteresis (bgrMat, validation, x+1, y+1, cols, rows);
-            traiterPixelHysteresis (bgrMat, validation, x, y+1, cols, rows);
+            traiterPixelBiseuillage (bgrMat, validation, x+1, y, cols, rows);
+            traiterPixelBiseuillage (bgrMat, validation, x+1, y+1, cols, rows);
+            traiterPixelBiseuillage (bgrMat, validation, x, y+1, cols, rows);
             if(v == SEUILLAGE_VALEUR_MIL) {
                 if(voisinage.at<uchar>(0, 1) == 255 || voisinage.at<uchar>(1, 1) == 255 || voisinage.at<uchar>(1, 0) == 255)
                     voisinage.at<uchar>(0, 0) = 255;
@@ -2646,7 +3290,7 @@ void MainWindow::traiterPixelBiseuillage (cv::Mat& bgrMat, cv::Mat& validation, 
             if(v == SEUILLAGE_VALEUR_MAX) {
                 if(voisinage.at<uchar>(0, 1) == SEUILLAGE_VALEUR_MIL) voisinage.at<uchar>(0, 1) = 255;
             }
-            traiterPixelHysteresis (bgrMat, validation, x+1, y, cols, rows);
+            traiterPixelBiseuillage (bgrMat, validation, x+1, y, cols, rows);
             if(v == SEUILLAGE_VALEUR_MIL) {
                 if(voisinage.at<uchar>(0, 1) == 255)
                     voisinage.at<uchar>(0, 0) = 255;
@@ -2658,7 +3302,7 @@ void MainWindow::traiterPixelBiseuillage (cv::Mat& bgrMat, cv::Mat& validation, 
             if(v == SEUILLAGE_VALEUR_MAX) {
                 if(voisinage.at<uchar>(1, 0) == SEUILLAGE_VALEUR_MIL) voisinage.at<uchar>(1, 0) = 255;
             }
-            traiterPixelHysteresis (bgrMat, validation, x, y+1, cols, rows);
+            traiterPixelBiseuillage (bgrMat, validation, x, y+1, cols, rows);
             if(v == SEUILLAGE_VALEUR_MIL) {
                 if(voisinage.at<uchar>(1, 0) == 255)
                     voisinage.at<uchar>(0, 0) = 255;
@@ -2671,7 +3315,6 @@ void MainWindow::traiterPixelBiseuillage (cv::Mat& bgrMat, cv::Mat& validation, 
     }
     p[y*cols+x] = 0;
 }
-*/
 
 void MainWindow::afficherGradientSobel (QLabel* label, TypeSobel type) {
     QImage image = label->pixmap()->toImage();
@@ -2819,6 +3462,7 @@ void MainWindow::calculerGradientPrewitt (QImage& argbImage, QString titre, Type
 
 
 
+//menu fichier
 void MainWindow::on_actionOuvrir_triggered () {
     QFileDialog fileDialog;
     fileDialog.setFileMode(QFileDialog::ExistingFile);
@@ -2828,6 +3472,13 @@ void MainWindow::on_actionOuvrir_triggered () {
     ouvrirImage(nomFichier.toStdString ().data ());
 }
 
+void MainWindow::on_actionFermerTout_triggered () {
+    if (getFocusedArea() == NULL && getFirstUnfocusedArea() == NULL)
+        return;
+    fermerTout();
+}
+
+//menu affichage
 void MainWindow::on_actionTailleNormale_triggered () {
     QScrollArea* scrollArea = getFocusedArea();
     if (scrollArea == NULL)
@@ -2848,6 +3499,55 @@ void MainWindow::on_actionZoomOut_triggered () {
     if (scrollArea == NULL)
         return;
     scaleImage(scrollArea, 0.80);
+}
+
+void MainWindow::on_actionCvtColorInverse_triggered () {
+    QLabel* label = getFocusedLabel();
+    if (label == NULL)
+        return;
+    afficherPalette(label, CVT_COLOR_INVERSE);
+}
+
+void MainWindow::on_actionThermal_triggered () {
+    QLabel* label = getFocusedLabel();
+    if (label == NULL)
+        return;
+    afficherPalette(label, THERMAL);
+}
+
+void MainWindow::on_actionCvtColor_triggered () {
+    QLabel* label = getFocusedLabel();
+    if (label == NULL)
+        return;
+    afficherPalette(label, CVT_COLOR);
+}
+
+void MainWindow::on_actionMRI_triggered () {
+    QLabel* label = getFocusedLabel();
+    if (label == NULL)
+        return;
+    afficherPalette(label, MRI);
+}
+
+void MainWindow::on_actionColdToHot_triggered () {
+    QLabel* label = getFocusedLabel();
+    if (label == NULL)
+        return;
+    afficherPalette(label, COLD_TO_HOT);
+}
+
+void MainWindow::on_actionJet_triggered () {
+    QLabel* label = getFocusedLabel();
+    if (label == NULL)
+        return;
+    afficherPalette(label, JET);
+}
+
+void MainWindow::on_actionDupliquer_triggered () {
+    QLabel* label = getFocusedLabel();
+    if (label == NULL)
+        return;
+    dupliquer(label);
 }
 
 //menu outils

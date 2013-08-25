@@ -36,6 +36,7 @@
      <string>Fichier</string>
     </property>
     <addaction name="actionOuvrir"/>
+    <addaction name="actionFermerTout"/>
     <addaction name="separator"/>
     <addaction name="actionQuitter"/>
    </widget>
@@ -43,9 +44,25 @@
     <property name="title">
      <string>Affichage</string>
     </property>
+    <widget class="QMenu" name="menuPalette">
+     <property name="title">
+      <string>Palette</string>
+     </property>
+     <addaction name="actionCvtColorInverse"/>
+     <addaction name="actionThermal"/>
+     <addaction name="separator"/>
+     <addaction name="actionCvtColor"/>
+     <addaction name="actionMRI"/>
+     <addaction name="actionColdToHot"/>
+     <addaction name="actionJet"/>
+    </widget>
     <addaction name="actionTailleNormale"/>
     <addaction name="actionZoomIn"/>
     <addaction name="actionZoomOut"/>
+    <addaction name="separator"/>
+    <addaction name="menuPalette"/>
+    <addaction name="separator"/>
+    <addaction name="actionDupliquer"/>
    </widget>
    <widget class="QMenu" name="menuOutils">
     <property name="title">
@@ -245,6 +262,9 @@
    </property>
   </action>
   <action name="actionZoomIn">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>Zoom in</string>
    </property>
@@ -253,6 +273,9 @@
    </property>
   </action>
   <action name="actionZoomOut">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>Zoom out</string>
    </property>
@@ -261,6 +284,9 @@
    </property>
   </action>
   <action name="actionTailleNormale">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>Taille Normale</string>
    </property>
@@ -866,6 +892,70 @@
    </property>
    <property name="text">
     <string>Maxima</string>
+   </property>
+  </action>
+  <action name="actionDupliquer">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Dupliquer</string>
+   </property>
+  </action>
+  <action name="actionThermal">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Thermal</string>
+   </property>
+  </action>
+  <action name="actionCvtColorInverse">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>cvtColor Inverse</string>
+   </property>
+  </action>
+  <action name="actionCvtColor">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>cvtColor</string>
+   </property>
+  </action>
+  <action name="actionMRI">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>MRI</string>
+   </property>
+  </action>
+  <action name="actionColdToHot">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Cold-to-Hot</string>
+   </property>
+  </action>
+  <action name="actionJet">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Jet</string>
+   </property>
+  </action>
+  <action name="actionFermerTout">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Fermer Tout</string>
    </property>
   </action>
  </widget>
