@@ -76,7 +76,9 @@ private:
     Ui::MainWindow* ui;
     QHash<uint, double> scaleFactor;
     QHash<uint, QString> windowTitle;
+    QHash<uint, double> tempsCalcul;
     cv::RNG rng;
+    double dernierTempsDeCalcul;
 
     bool eventFilter (QObject* watched, QEvent* e);
 
@@ -86,7 +88,11 @@ private:
     QLabel* getFirstUnfocusedLabel ();
     QLabel* getLabelInArea (QScrollArea* scrollArea);
     template<class T>
-    T* findFirstChildClassOf(const QList<QObject*> &children);
+    T* findFirstChildOfType(const QList<QObject*> &children);
+    void activerActionsUnaires();
+    void desactiverActionsUnaires();
+    void activerActionsBinaires();
+    void desactiverActionsBinaires();
 
 
     //menu fichier
@@ -165,9 +171,9 @@ private:
 
     //menu filtrage
     void afficherMoyenneur3x3 (QLabel* label);
-    void calculerMoyenneur3x3 (QImage& argbImage, QString titre, cv::Point anchor = cv::Point(-1, -1), int borderType = cv::BORDER_DEFAULT);
+    const QImage& calculerMoyenneur3x3 (const QImage& argbImage, cv::Point anchor = cv::Point(-1, -1), int borderType = cv::BORDER_DEFAULT);
     void afficherMoyenneurNxN (QLabel* label);
-    void calculerMoyenneurNxN (QImage& argbImage, QString titre, cv::Size ksize = cv::Size(3,3), cv::Point anchor = cv::Point(-1, -1), int borderType = cv::BORDER_DEFAULT);
+    const QImage& calculerMoyenneurNxN (const QImage& argbImage, cv::Size ksize = cv::Size(3,3), cv::Point anchor = cv::Point(-1, -1), int borderType = cv::BORDER_DEFAULT);
     void afficherLaplacien (QLabel* label);
     void calculerLaplacien (QImage& argbImage, QString titre, int ksize = 3, double gain = 1, double offset = 0, int borderType = cv::BORDER_DEFAULT);
     void afficherMedian (QLabel* label);
@@ -183,7 +189,7 @@ private:
     void afficherSeuillageVarianceSimple (QLabel* label);
     void calculerSeuillageVarianceSimple (QImage& argbImage, QString titre, double seuil, double maxval = SEUILLAGE_VALEUR_MAX);
     void afficherSeuillageManuelDouble (QLabel* label);
-    void calculerSeuillageManuelDouble (QImage& argbImage, double seuilBas, double seuilHaut, double minVal = 0, double midVal = SEUILLAGE_VALEUR_MIL, double maxVal = SEUILLAGE_VALEUR_MAX);
+    const QImage& calculerSeuillageManuelDouble (const QImage& argbImage, double seuilBas, double seuilHaut, double minVal = 0, double midVal = SEUILLAGE_VALEUR_MIL, double maxVal = SEUILLAGE_VALEUR_MAX);
     void afficherSeuillageVarianceDouble (QLabel* label);
     void calculerSeuillageVarianceDouble (QImage& argbImage, QString titre, double seuilBas, double seuilHaut, double minVal = 0, double midVal = SEUILLAGE_VALEUR_MIL, double maxVal = SEUILLAGE_VALEUR_MAX);
     void afficherSeuillageParHysteresis (QLabel* label);
@@ -192,7 +198,6 @@ private:
     void traiterPixelHysteresisbw (cv::Mat& bgrMat, cv::Mat& validation, int x, int y, int cols, int rows);
     void afficherBiseuillage (QLabel* label);
     void calculerBiseuillage (QImage& argbImage, QString titre, int seuilBas, int seuilHaut);
-    void traiterPixelBiseuillage (cv::Mat& bgrMat, cv::Mat& validation, int x, int y, int cols, int rows);
     void afficherGradientSobel (QLabel* label, TypeSobel type);
     void calculerGradientSobel (QImage& argbImage, QString titre, TypeSobel, int ksize = 3, double gain = 1, double offset = 0, int borderType = cv::BORDER_DEFAULT);
     void afficherGradientPrewitt (QLabel* label, TypePrewitt type);

@@ -76,6 +76,7 @@ const char* MainWindow::DOSSIER_DEFAUT_OUVERTURE_IMAGES = "./../TCIMAG_ressource
 MainWindow::MainWindow (QWidget* parent) : QMainWindow (parent), ui (new Ui::MainWindow) {
     ui->setupUi(this);
     rng = cv::RNG(cv::getTickCount());
+    dernierTempsDeCalcul = 0;
 
     //ouvrirImage("../TCIMAG_ressources/lena.bmp");
     //ouvrirImage("../TCIMAG_ressources/lenaGray.bmp");
@@ -123,6 +124,7 @@ MainWindow::MainWindow (QWidget* parent) : QMainWindow (parent), ui (new Ui::Mai
     //ouvrirImage("../TCIMAG_ressources/RONDELLE.PNG");
     //ouvrirImage("../TCIMAG_ressources/SPOT.PNG");
 
+    /*
     //menu fichier
     ui->actionFermerTout->setEnabled(true);
 
@@ -186,6 +188,7 @@ MainWindow::MainWindow (QWidget* parent) : QMainWindow (parent), ui (new Ui::Mai
     ui->actionNormePrewitt->setEnabled(true);
     ui->actionGradientXPrewitt->setEnabled(true);
     ui->actionGradientYPrewitt->setEnabled(true);
+    */
 }
 
 MainWindow::~MainWindow () {
@@ -271,9 +274,13 @@ bool MainWindow::eventFilter (QObject* watched, QEvent* e) {
                 .arg (QString::number (qAlpha (rgb)), 3)
                 .arg (QString::number (qRed (rgb)), 3).arg (QString::number (qGreen (rgb)), 3).arg (QString::number (qBlue (rgb)), 3)
                 .arg (QString::number (qGray (rgb)));
-        this->statusBar()->showMessage(message);
+        if (tempsCalcul.contains(qHash(watched)))
+            message.append(QString("   \ttemps de calcul:%1 ms").arg(tempsCalcul[qHash(watched)]));
+        statusBar()->showMessage(message);
     } else if (e->type() == QEvent::FocusIn) {
         //// QScrollableArea
+        activerActionsUnaires();
+        if(getFirstUnfocusedArea() != NULL) activerActionsBinaires();
         updateZoomActions (getLabelInArea ((QScrollArea*) watched));
     //} else if (e->type() == QEvent::WindowDeactivate) {
     //    std::cerr << "win deact: " << typeid(*watched).name() << std::endl;
@@ -285,6 +292,8 @@ bool MainWindow::eventFilter (QObject* watched, QEvent* e) {
             /*getLabelInArea((QScrollArea*) watched)->deleteLater();
             watched->deleteLater();
             watched->parent()->deleteLater();*/detruire((QScrollArea*) watched);
+            desactiverActionsBinaires();
+            desactiverActionsUnaires();
         }
     }
     return QWidget::eventFilter(watched, e);
@@ -298,7 +307,7 @@ QScrollArea* MainWindow::getFocusedArea() {
     QList<QObject*> children = ui->centralWidget->children();
     if (children.isEmpty())
         return NULL;
-    QObject* child = findFirstChildClassOf<QWidget>(children);
+    QObject* child = findFirstChildOfType<QWidget>(children);
     if (child == NULL)
         return NULL;
     children = child->children();
@@ -306,7 +315,7 @@ QScrollArea* MainWindow::getFocusedArea() {
         return NULL;
     QScrollArea* scrollArea;
     for (int i = 0; i < children.size(); i++) {
-        scrollArea = findFirstChildClassOf<QScrollArea>(children.at(i)->children());
+        scrollArea = findFirstChildOfType<QScrollArea>(children.at(i)->children());
         if (scrollArea == NULL)
             continue;
         if (scrollArea->hasFocus())
@@ -323,7 +332,7 @@ QScrollArea* MainWindow::getFirstUnfocusedArea() {
     QList<QObject*> children = ui->centralWidget->children();
     if (children.isEmpty())
         return NULL;
-    QObject* child = findFirstChildClassOf<QWidget>(children);
+    QObject* child = findFirstChildOfType<QWidget>(children);
     if (child == NULL)
         return NULL;
     children = child->children();
@@ -331,7 +340,7 @@ QScrollArea* MainWindow::getFirstUnfocusedArea() {
         return NULL;
     QScrollArea* scrollArea;
     for (int i = 0; i < children.size(); i++) {
-        scrollArea = findFirstChildClassOf<QScrollArea>(children.at(i)->children());
+        scrollArea = findFirstChildOfType<QScrollArea>(children.at(i)->children());
         if (scrollArea == NULL)
             continue;
         if (!scrollArea->hasFocus() && scrollArea->isActiveWindow())
@@ -406,7 +415,7 @@ QLabel* MainWindow::getLabelInArea (QScrollArea* scrollArea) {
 }
 
 template<class T>
-T* MainWindow::findFirstChildClassOf(const QList<QObject*> &children) {
+T* MainWindow::findFirstChildOfType(const QList<QObject*> &children) {
     T* child = NULL;
     for (int i = 0; i < children.size(); i++) {
         if (typeid(*children.at(i)) == typeid(T)) {
@@ -418,13 +427,157 @@ T* MainWindow::findFirstChildClassOf(const QList<QObject*> &children) {
     return child;
 }
 
+void MainWindow::activerActionsUnaires() {
+    //menu fichier
+    ui->actionFermerTout->setEnabled(true);
+
+    //menu affichage
+    ui->actionTailleNormale->setEnabled(true);
+    ui->actionZoomIn->setEnabled(true);
+    ui->actionZoomOut->setEnabled(true);
+    ui->actionCvtColorInverse->setEnabled(true);
+    ui->actionThermal->setEnabled(true);
+    ui->actionCvtColor->setEnabled(true);
+    ui->actionMRI->setEnabled(true);
+    ui->actionColdToHot->setEnabled(true);
+    ui->actionJet->setEnabled(true);
+    ui->actionDupliquer->setEnabled(true);
+
+    //menu outils
+    ui->actionAffichage->setEnabled(true);
+    ui->actionRecadrage->setEnabled(true);
+    ui->actionNegatif->setEnabled(true);
+    ui->actionCalibration->setEnabled(true);
+    ui->actionEgalisation->setEnabled(true);
+    ui->actionExponentielle->setEnabled(true);
+    ui->actionLogarithmique->setEnabled(true);
+    ui->actionPlanBinaire->setEnabled(true);
+    ui->actionQuantification->setEnabled(true);
+    ui->actionChangementDEchelle->setEnabled(true);
+    ui->actionRotation->setEnabled(true);
+    ui->actionRotationInterpolee->setEnabled(true);
+    ui->actionTransposee->setEnabled(true);
+    ui->actionVuePerspective->setEnabled(true);
+    ui->actionBruitUniforme->setEnabled(true);
+    ui->actionBruitPoivreEtSel->setEnabled(true);
+    ui->actionUniforme->setEnabled(true);
+    ui->actionRampe->setEnabled(true);
+
+    //menu filtrage
+    ui->actionMoyenneur3x3->setEnabled(true);
+    ui->actionMoyenneurNxN->setEnabled(true);
+    ui->actionLaplacien->setEnabled(true);
+    ui->actionMedian->setEnabled(true);
+    ui->actionVFiltre->setEnabled(true);
+    ui->actionFFT->setEnabled(true);
+
+    //menu segmentation
+    ui->actionManuelSimple->setEnabled(true);
+    ui->actionVarianceSimple->setEnabled(true);
+    ui->actionManuelDouble->setEnabled(true);
+    ui->actionVarianceDouble->setEnabled(true);
+    ui->actionSeuillageParHysteresis->setEnabled(true);
+    ui->actionBiseuillage->setEnabled(true);
+    ui->actionNormeSobel->setEnabled(true);
+    ui->actionGradientXSobel->setEnabled(true);
+    ui->actionGradientYSobel->setEnabled(true);
+    ui->actionNormePrewitt->setEnabled(true);
+    ui->actionGradientXPrewitt->setEnabled(true);
+    ui->actionGradientYPrewitt->setEnabled(true);
+}
+
+void MainWindow::desactiverActionsUnaires() {
+    //menu fichier
+    ui->actionFermerTout->setEnabled(false);
+
+    //menu affichage
+    ui->actionTailleNormale->setEnabled(false);
+    ui->actionZoomIn->setEnabled(false);
+    ui->actionZoomOut->setEnabled(false);
+    ui->actionCvtColorInverse->setEnabled(false);
+    ui->actionThermal->setEnabled(false);
+    ui->actionCvtColor->setEnabled(false);
+    ui->actionMRI->setEnabled(false);
+    ui->actionColdToHot->setEnabled(false);
+    ui->actionJet->setEnabled(false);
+    ui->actionDupliquer->setEnabled(false);
+
+    //menu outils
+    ui->actionAffichage->setEnabled(false);
+    ui->actionRecadrage->setEnabled(false);
+    ui->actionNegatif->setEnabled(false);
+    ui->actionCalibration->setEnabled(false);
+    ui->actionEgalisation->setEnabled(false);
+    ui->actionExponentielle->setEnabled(false);
+    ui->actionLogarithmique->setEnabled(false);
+    ui->actionPlanBinaire->setEnabled(false);
+    ui->actionQuantification->setEnabled(false);
+    ui->actionChangementDEchelle->setEnabled(false);
+    ui->actionRotation->setEnabled(false);
+    ui->actionRotationInterpolee->setEnabled(false);
+    ui->actionTransposee->setEnabled(false);
+    ui->actionVuePerspective->setEnabled(false);
+    ui->actionBruitUniforme->setEnabled(false);
+    ui->actionBruitPoivreEtSel->setEnabled(false);
+    ui->actionUniforme->setEnabled(false);
+    ui->actionRampe->setEnabled(false);
+
+    //menu filtrage
+    ui->actionMoyenneur3x3->setEnabled(false);
+    ui->actionMoyenneurNxN->setEnabled(false);
+    ui->actionLaplacien->setEnabled(false);
+    ui->actionMedian->setEnabled(false);
+    ui->actionVFiltre->setEnabled(false);
+    ui->actionFFT->setEnabled(false);
+
+    //menu segmentation
+    ui->actionManuelSimple->setEnabled(false);
+    ui->actionVarianceSimple->setEnabled(false);
+    ui->actionManuelDouble->setEnabled(false);
+    ui->actionVarianceDouble->setEnabled(false);
+    ui->actionSeuillageParHysteresis->setEnabled(false);
+    ui->actionBiseuillage->setEnabled(false);
+    ui->actionNormeSobel->setEnabled(false);
+    ui->actionGradientXSobel->setEnabled(false);
+    ui->actionGradientYSobel->setEnabled(false);
+    ui->actionNormePrewitt->setEnabled(false);
+    ui->actionGradientXPrewitt->setEnabled(false);
+    ui->actionGradientYPrewitt->setEnabled(false);
+}
+
+void MainWindow::activerActionsBinaires() {
+    //menu outils
+    ui->actionAddition->setEnabled(true);
+    ui->actionSoustraction->setEnabled(true);
+    ui->actionCombinaison->setEnabled(true);
+    ui->actionMinimum->setEnabled(true);
+    ui->actionMaximum->setEnabled(true);
+    ui->actionAND->setEnabled(true);
+    ui->actionOR->setEnabled(true);
+    ui->actionXOR->setEnabled(true);
+    ui->actionNOT->setEnabled(true);
+}
+
+void MainWindow::desactiverActionsBinaires() {
+    //menu outils
+    ui->actionAddition->setEnabled(false);
+    ui->actionSoustraction->setEnabled(false);
+    ui->actionCombinaison->setEnabled(false);
+    ui->actionMinimum->setEnabled(false);
+    ui->actionMaximum->setEnabled(false);
+    ui->actionAND->setEnabled(false);
+    ui->actionOR->setEnabled(false);
+    ui->actionXOR->setEnabled(false);
+    ui->actionNOT->setEnabled(false);
+}
+
 
 
 //menu fichier
 void MainWindow::ouvrirImage (const char* nomFichier) {
     QImage loadImg (nomFichier);
     if (loadImg.isNull()) {
-        this->statusBar()->showMessage(tr("Échec de lecture de l'image depuis le fichier: %1").arg(nomFichier));
+        statusBar()->showMessage(tr("Échec de lecture de l'image depuis le fichier: %1").arg(nomFichier));
         return;
     }
 
@@ -455,13 +608,17 @@ void MainWindow::creerFenetre(const QPixmap& pixmap, const QString& titre = "") 
     labelImage->setPixmap(pixmap);
     scaleFactor[qHash(labelImage)] = 1.0;
     windowTitle[qHash(labelImage)] = titre;
+    if(dernierTempsDeCalcul != 0) {
+        tempsCalcul[qHash(labelImage)] = dernierTempsDeCalcul;
+        dernierTempsDeCalcul = 0;
+    }
 
     QScrollArea* scrollArea = new QScrollArea();
     scrollArea->setWidget(labelImage);
     scrollArea->installEventFilter(this);
 
     QMdiSubWindow* subWindow = new QMdiSubWindow();
-    subWindow->setParent(this->centralWidget());
+    subWindow->setParent(centralWidget());
     subWindow->setWindowTitle(titre);
     subWindow->setMinimumSize ((int)(pixmap.width () / 5), (int)(pixmap.height () / 5));
     subWindow->setWidget(scrollArea);
@@ -472,7 +629,7 @@ const QPixmap MainWindow::imageToQPixmap (const char* nomFichier) {
     cv::Mat loadImg;
     loadImg = cv::imread(nomFichier, CV_LOAD_IMAGE_COLOR);
     if (!loadImg.data) {
-        this->statusBar()->showMessage(tr("Échec de lecture de l'image depuis le fichier: %1").arg(nomFichier));
+        statusBar()->showMessage(tr("Échec de lecture de l'image depuis le fichier: %1").arg(nomFichier));
         return QPixmap();
     }
     QImage rgbImg;
@@ -484,7 +641,7 @@ void MainWindow::fermerTout() {
     QList<QObject*> children = ui->centralWidget->children();
     if (children.isEmpty())
         return;
-    QObject* child = findFirstChildClassOf<QWidget>(children);
+    QObject* child = findFirstChildOfType<QWidget>(children);
     if (child == NULL)
         return;
     children = child->children();
@@ -492,7 +649,7 @@ void MainWindow::fermerTout() {
         return;
     QScrollArea* scrollArea;
     for (int i = 0; i < children.size(); i++) {
-        scrollArea = findFirstChildClassOf<QScrollArea>(children.at(i)->children());
+        scrollArea = findFirstChildOfType<QScrollArea>(children.at(i)->children());
         if (scrollArea == NULL)
             continue;
         scrollArea->close();
@@ -504,14 +661,18 @@ void MainWindow::fermerTout() {
 void MainWindow::detruire(QScrollArea* scrollArea) {
     if (scrollArea == NULL)
         return;
-    getLabelInArea(scrollArea)->deleteLater();
+    QLabel* label = getLabelInArea(scrollArea);
+    windowTitle.remove(qHash(label));
+    scaleFactor.remove(qHash(label));
+    tempsCalcul.remove(qHash(label));
+    label->deleteLater();
     scrollArea->deleteLater();
     scrollArea->parent()->deleteLater();
 }
 
 //menu affichage
 void MainWindow::scaleImage (QScrollArea* scrollArea, double facteur) {
-    QLabel* image = this->getLabelInArea(scrollArea);
+    QLabel* image = getLabelInArea(scrollArea);
     QSize actuelle = image->pixmap()->size();
     if (!this->scaleFactor.contains(qHash(image)))
         return;
@@ -531,7 +692,7 @@ void MainWindow::adjustScrollBar (QScrollBar* scrollBar, double facteur) {
 }
 
 void MainWindow::updateZoomActions (QLabel* image) {
-    if (!this->scaleFactor.contains(qHash(image)))
+    if (!scaleFactor.contains(qHash(image)))
         return;
     double scaleFactor = this->scaleFactor[qHash(image)];
     ui->actionZoomIn->setEnabled(scaleFactor < 3.0);
@@ -574,27 +735,27 @@ void MainWindow::calculerPalette (QImage& argbImage, QString titre, CodePalette 
 
     case THERMAL:
         p = BlueLUT.data;
-        for( int i = 0; i < 15; ++i)
+        for(int i = 0; i < 15; ++i)
             p[i] = 90 * i/15;
-        for( int i = 15; i < 195; ++i)
+        for(int i = 15; i < 195; ++i)
             p[i] = 90 - (i-15) * 90/180;
-        for( int i = 195; i < 256; ++i)
-            p[i] = 255 * (i-180)/180;
+        for(int i = 195; i < 256; ++i)
+            p[i] = 255 * (i-195)/180;
 
         p = GreenLUT.data;
-        for( int i = 0; i < 15; ++i)
+        for(int i = 0; i < 15; ++i)
             p[i] = 0;
-        for( int i = 15; i < 195; ++i)
+        for(int i = 15; i < 195; ++i)
             p[i] = 255 * (i-15)/180;
-        for( int i = 195; i < 256; ++i)
+        for(int i = 195; i < 256; ++i)
             p[i] = 255;
 
         p = RedLUT.data;
-        for( int i = 0; i < 25; ++i)
+        for(int i = 0; i < 25; ++i)
             p[i] = 90 * i/15;
-        for( int i = 15; i < 195; ++i)
-            p[i] = 90 + (i-15) * 155/180;
-        for( int i = 195; i < 256; ++i)
+        for(int i = 15; i < 195; ++i)
+            p[i] = 90 + (i-15) * 155/180 + 11;
+        for(int i = 195; i < 256; ++i)
             p[i] = 255;
         break;
 
@@ -626,34 +787,28 @@ void MainWindow::calculerPalette (QImage& argbImage, QString titre, CodePalette 
 
     case MRI:
         p = BlueLUT.data;
-        for( int i = 0; i < 25; ++i)
+        for(int i = 0; i < 25; ++i)
             p[i] = 255 * i/25;
-        for( int i = 25; i < 140; ++i)
+        for(int i = 25; i < 140; ++i)
             p[i] = 255 - (int)((i-25) * 255/115);
-        for( int i = 140; i < 231; ++i)
-            p[i] = 0;
-        for( int i = 231; i < 256; ++i)
+        for(int i = 140; i < 256; ++i)
             p[i] = 0;
 
         p = GreenLUT.data;
-        for( int i = 0; i < 25; ++i)
+        for(int i = 0; i < 25; ++i)
             p[i] = 0;
-        for( int i = 25; i < 140; ++i)
+        for(int i = 25; i < 140; ++i)
             p[i] = 255 * (i-25)/115;
-        for( int i = 140; i < 231; ++i)
-            p[i] = 255 - (int)((i-115) * 255/115);
-        for( int i = 231; i < 256; ++i)
-            p[i] = 0;
+        for(int i = 140; i < 256; ++i)
+            p[i] = 255 - (int)((i-140) * 255/115);
 
         p = RedLUT.data;
-        for( int i = 0; i < 25; ++i)
+        for(int i = 0; i < 25; ++i)
             p[i] = 0;
-        for( int i = 25; i < 140; ++i)
+        for(int i = 25; i < 140; ++i)
             p[i] = 0;
-        for( int i = 140; i < 231; ++i)
-            p[i] = 255 * (i-115)/115;
-        for( int i = 231; i < 256; ++i)
-            p[i] = 255;
+        for(int i = 140; i < 256; ++i)
+            p[i] = 255 * (i-140)/115;
         break;
 
     case COLD_TO_HOT:
@@ -1260,7 +1415,7 @@ void MainWindow::afficherCalibration (QLabel* label) {
     IntIntDialog d(this, QString("Calibration d'Histogramme"), QString("Min (entre 0 et 255): "), 80, 0, 255, 1, QString("Max (entre 0 et 255): "), 240, 0, 255, 1);
     d.run(seuil1, seuil2, ok);
     if (!ok) return;
-    this->statusBar()->showMessage(tr("Calibration d'Histogramme(%1;%2): ").arg(seuil1).arg(seuil2));
+    statusBar()->showMessage(tr("Calibration d'Histogramme(%1;%2): ").arg(seuil1).arg(seuil2));
     QString titre = QString("Calibration d'Histogramme(%1;%2): ").arg(seuil1).arg(seuil2) + windowTitle[qHash(label)];
     calculerCalibration(image, titre, seuil1, seuil2);
 }
@@ -1347,7 +1502,7 @@ void MainWindow::calculerEgalisation (QImage& argbImage, QString titre) {
 
 void MainWindow::afficherExponentielle (QLabel* label) {
     QImage image = label->pixmap()->toImage();
-    this->statusBar()->showMessage(tr("Exponentielle"));
+    statusBar()->showMessage(tr("Exponentielle"));
     QString titre = QString("Exponentielle: ") + windowTitle[qHash(label)];
     calculerExponentielle(image, titre);
 }
@@ -1378,7 +1533,7 @@ void MainWindow::calculerExponentielle (QImage& argbImage, QString titre) {
 
 void MainWindow::afficherLogarithmique (QLabel* label) {
     QImage image = label->pixmap()->toImage();
-    this->statusBar()->showMessage(tr("Logarithmique"));
+    statusBar()->showMessage(tr("Logarithmique"));
     QString titre = QString("Logarithmique: ") + windowTitle[qHash(label)];
     calculerLogarithmique(image, titre);
 }
@@ -1415,7 +1570,7 @@ void MainWindow::afficherAddition (QLabel* labelDroite, QLabel* labelGauche) {
         QErrorMessage err(this);
         err.showMessage(msg);
         err.exec();
-        this->statusBar()->showMessage(msg);
+        statusBar()->showMessage(msg);
         return;
     }
     QString titre = windowTitle[qHash(labelDroite)] + QString(" + ") + windowTitle[qHash(labelGauche)];
@@ -1447,7 +1602,7 @@ void MainWindow::afficherSoustraction (QLabel* labelGauche, QLabel* labelDroite)
         QErrorMessage err(this);
         err.showMessage(msg);
         err.exec();
-        this->statusBar()->showMessage(msg);
+        statusBar()->showMessage(msg);
         return;
     }
     QString titre = windowTitle[qHash(labelGauche)] + QString(" - ") + windowTitle[qHash(labelDroite)];
@@ -1479,13 +1634,13 @@ void MainWindow::afficherCombinaison (QLabel* labelGauche, QLabel* labelDroite) 
         QErrorMessage err(this);
         err.showMessage(msg);
         err.exec();
-        this->statusBar()->showMessage(msg);
+        statusBar()->showMessage(msg);
         return;
     }
     bool ok;
     double alpha = QInputDialog::getDouble(this, tr("Combinaison"), tr("Pourcentage (entre 0 et 100): "), 50, 0, 100, 2, &ok, 0);
     if (!ok) return;
-    this->statusBar()->showMessage(tr("Alpha = %1").arg(alpha));
+    statusBar()->showMessage(tr("Alpha = %1").arg(alpha));
     QString titre = QString("%1%").arg(alpha) +windowTitle[qHash(labelGauche)] + QString("+%1%").arg(100-alpha) + windowTitle[qHash(labelDroite)];
     calculerCombinaison (imageGauche, imageDroite, titre, alpha/100);
 }
@@ -1514,7 +1669,7 @@ void MainWindow::afficherMinimum (QLabel* labelDroite, QLabel* labelGauche) {
         QErrorMessage err(this);
         err.showMessage(msg);
         err.exec();
-        this->statusBar()->showMessage(msg);
+        statusBar()->showMessage(msg);
         return;
     }
     QString titre = QString("Min(%1,%2)").arg(windowTitle[qHash(labelDroite)]).arg(windowTitle[qHash(labelGauche)]);
@@ -1550,7 +1705,7 @@ void MainWindow::afficherMaximum (QLabel* labelDroite, QLabel* labelGauche) {
         QErrorMessage err(this);
         err.showMessage(msg);
         err.exec();
-        this->statusBar()->showMessage(msg);
+        statusBar()->showMessage(msg);
         return;
     }
     QString titre = QString("Max(%1,%2)").arg(windowTitle[qHash(labelDroite)]).arg(windowTitle[qHash(labelGauche)]);
@@ -1586,7 +1741,7 @@ void MainWindow::afficherAND (QLabel* labelDroite, QLabel* labelGauche) {
         QErrorMessage err(this);
         err.showMessage(msg);
         err.exec();
-        this->statusBar()->showMessage(msg);
+        statusBar()->showMessage(msg);
         return;
     }
     QString titre = windowTitle[qHash(labelDroite)] + QString(" AND ") + windowTitle[qHash(labelGauche)];
@@ -1601,13 +1756,13 @@ void MainWindow::calculerAND (QImage& argbImageGauche, QImage& argbImageDroite, 
     cv::Mat bgrMatD;
     QImageTocvMat(argbImageDroite, bgrMatD);
 
-    cv::Mat dst(bgrMatG.rows, bgrMatD.cols, bgrMatG.type());
+    /*cv::Mat dst(bgrMatG.rows, bgrMatD.cols, bgrMatG.type());
     cv::MatIterator_<cv::Vec3b> it1, it2, it3, end;
     for(it1 = bgrMatG.begin<cv::Vec3b>(), it2 = bgrMatD.begin<cv::Vec3b>(), it3 = dst.begin<cv::Vec3b>(), end = bgrMatG.end<cv::Vec3b>(); it1 != end; ++it1, ++it2, ++it3) {
         (*it3)[0] = (*it1)[0] & (*it2)[0];
         (*it3)[1] = (*it1)[1] & (*it2)[1];
         (*it3)[2] = (*it1)[2] & (*it2)[2];
-    }
+    }*/cv::Mat dst; cv::bitwise_and(bgrMatG, bgrMatD, dst, cv::noArray());
 
     QImage result;
     cvMatToQImage(dst, result);
@@ -1622,7 +1777,7 @@ void MainWindow::afficherOR (QLabel* labelDroite, QLabel* labelGauche) {
         QErrorMessage err(this);
         err.showMessage(msg);
         err.exec();
-        this->statusBar()->showMessage(msg);
+        statusBar()->showMessage(msg);
         return;
     }
     QString titre = windowTitle[qHash(labelDroite)] + QString(" OR ") + windowTitle[qHash(labelGauche)];
@@ -1637,13 +1792,13 @@ void MainWindow::calculerOR (QImage& argbImageGauche, QImage& argbImageDroite, Q
     cv::Mat bgrMatD;
     QImageTocvMat(argbImageDroite, bgrMatD);
 
-    cv::Mat dst(bgrMatG.rows, bgrMatD.cols, bgrMatG.type());
+    /*cv::Mat dst(bgrMatG.rows, bgrMatD.cols, bgrMatG.type());
     cv::MatIterator_<cv::Vec3b> it1, it2, it3, end;
     for(it1 = bgrMatG.begin<cv::Vec3b>(), it2 = bgrMatD.begin<cv::Vec3b>(), it3 = dst.begin<cv::Vec3b>(), end = bgrMatG.end<cv::Vec3b>(); it1 != end; ++it1, ++it2, ++it3) {
         (*it3)[0] = (*it1)[0] | (*it2)[0];
         (*it3)[1] = (*it1)[1] | (*it2)[1];
         (*it3)[2] = (*it1)[2] | (*it2)[2];
-    }
+    }*/cv::Mat dst; cv::bitwise_or(bgrMatG, bgrMatD, dst, cv::noArray());
 
     QImage result;
     cvMatToQImage(dst, result);
@@ -1658,7 +1813,7 @@ void MainWindow::afficherXOR (QLabel* labelDroite, QLabel* labelGauche) {
         QErrorMessage err(this);
         err.showMessage(msg);
         err.exec();
-        this->statusBar()->showMessage(msg);
+        statusBar()->showMessage(msg);
         return;
     }
     QString titre = windowTitle[qHash(labelDroite)] + QString(" XOR ") + windowTitle[qHash(labelGauche)];
@@ -1673,13 +1828,13 @@ void MainWindow::calculerXOR (QImage& argbImageGauche, QImage& argbImageDroite, 
     cv::Mat bgrMatD;
     QImageTocvMat(argbImageDroite, bgrMatD);
 
-    cv::Mat dst(bgrMatG.rows, bgrMatD.cols, bgrMatG.type());
+    /*cv::Mat dst(bgrMatG.rows, bgrMatD.cols, bgrMatG.type());
     cv::MatIterator_<cv::Vec3b> it1, it2, it3, end;
     for(it1 = bgrMatG.begin<cv::Vec3b>(), it2 = bgrMatD.begin<cv::Vec3b>(), it3 = dst.begin<cv::Vec3b>(), end = bgrMatG.end<cv::Vec3b>(); it1 != end; ++it1, ++it2, ++it3) {
         (*it3)[0] = (*it1)[0] ^ (*it2)[0];
         (*it3)[1] = (*it1)[1] ^ (*it2)[1];
         (*it3)[2] = (*it1)[2] ^ (*it2)[2];
-    }
+    }*/cv::Mat dst; cv::bitwise_xor(bgrMatG, bgrMatD, dst, cv::noArray());
 
     QImage result;
     cvMatToQImage(dst, result);
@@ -1696,12 +1851,12 @@ void MainWindow::calculerNOT (QImage& argbImage, QString titre) {
     cv::Mat bgrMat;
     QImageTocvMat(argbImage, bgrMat);
 
-    cv::MatIterator_<cv::Vec3b> it, end;
+    /*cv::MatIterator_<cv::Vec3b> it, end;
     for(it = bgrMat.begin<cv::Vec3b>(), end = bgrMat.end<cv::Vec3b>(); it != end; ++it) {
         (*it)[0] = ~(*it)[0];
         (*it)[1] = ~(*it)[1];
         (*it)[2] = ~(*it)[2];
-    }
+    }*/cv::bitwise_not(bgrMat, bgrMat, cv::noArray());
 
     cvMatToQImage(bgrMat, argbImage);
     creerFenetre(QPixmap::fromImage(argbImage), titre);
@@ -1712,7 +1867,7 @@ void MainWindow::afficherPlanBinaire (QLabel* label) {
     bool ok;
     int bit = QInputDialog::getInt(this, tr("Plan Binaire"), tr("Bit (entre 1 et 8): "), 4, 1, 8, 1, &ok, 0);
     if (!ok) return;
-    this->statusBar()->showMessage(tr("Plan Binaire(%1): ").arg(bit));
+    statusBar()->showMessage(tr("Plan Binaire(%1): ").arg(bit));
     QString titre = QString("Plan Binaire(%1): ").arg(bit) + windowTitle[qHash(label)];
     calculerPlanBinaire(image, titre, bit);
 }
@@ -1738,7 +1893,7 @@ void MainWindow::afficherQuantification (QLabel* label) {
     bool ok;
     int bits = QInputDialog::getInt(this, tr("Quantification"), tr("Bits gardés (entre 1 et 8): "), 4, 1, 8, 1, &ok, 0);
     if (!ok) return;
-    this->statusBar()->showMessage(tr("Quantification(%1 bits): ").arg(bits));
+    statusBar()->showMessage(tr("Quantification(%1 bits): ").arg(bits));
     QString titre = QString("Quantification(%1 bits): ").arg(bits) + windowTitle[qHash(label)];
     calculerQuantification(image, titre, bits);
 }
@@ -1767,7 +1922,7 @@ void MainWindow::afficherChangementDEchelle (QLabel* label) {
     IntIntDialog d(this, QString("Changement d'Échelle"), QString("Dimension X (entre 1 et %1): ").arg(width*10), width, 1, width*10, 1, QString("Dimension Y (entre 1 et %1): ").arg(height*10), height, 1, height*10, 1);
     d.run(dimX, dimY, ok);
     if (!ok) return;
-    this->statusBar()->showMessage(tr("Changement d'Échelle(%1;%2): ").arg(dimX).arg(dimY));
+    statusBar()->showMessage(tr("Changement d'Échelle(%1;%2): ").arg(dimX).arg(dimY));
     QString titre = QString("Changement d'Échelle(%1;%2): ").arg(dimX).arg(dimY) + windowTitle[qHash(label)];
     calculerChangementDEchelle (image, titre, dimX, dimY);
 }
@@ -1793,7 +1948,7 @@ void MainWindow::afficherRotation (QLabel* label) {
     DoubleDoubleDialog d(this, QString("Rotation"), QString("Angle (entre 0 et 360): "), 0, 0, 360, 2, QString("Zoom (entre 0 et 10): "), 1, 0, 10, 2);
     d.run(angle, zoom, ok);
     if (!ok) return;
-    this->statusBar()->showMessage(tr("Rotation(%1°;%2): ").arg(angle).arg(zoom));
+    statusBar()->showMessage(tr("Rotation(%1°;%2): ").arg(angle).arg(zoom));
     QString titre = QString("Rotation(%1°;%2): ").arg(angle).arg(zoom) + windowTitle[qHash(label)];
     calculerRotation (image, titre, angle, zoom);
 }
@@ -1822,7 +1977,7 @@ void MainWindow::afficherRotationInterpolee (QLabel* label) {
     DoubleDoubleDialog d(this, QString("Rotation Interpolée"), QString("Angle (entre 0 et 360): "), 0, 0, 360, 2, QString("Zoom (entre 0 et 10): "), 1, 0, 10, 2);
     d.run(angle, zoom, ok);
     if (!ok) return;
-    this->statusBar()->showMessage(tr("Rotation Interpolée(%1°;%2): ").arg(angle).arg(zoom));
+    statusBar()->showMessage(tr("Rotation Interpolée(%1°;%2): ").arg(angle).arg(zoom));
     QString titre = QString("Rotation Interpolée(%1°;%2): ").arg(angle).arg(zoom) + windowTitle[qHash(label)];
     calculerRotationInterpolee (image, titre, angle, zoom);
 }
@@ -1910,7 +2065,7 @@ void MainWindow::afficherBruitUniforme (QLabel* label) {
     bool ok;
     int valeur = QInputDialog::getInt(this, tr("Bruit Uniforme"), tr("Valeur (entre 0 et 255): "), 20, 0, 255, 1, &ok, 0);
     if (!ok) return;
-    this->statusBar()->showMessage(tr("Bruit Uniforme(%1): ").arg(valeur));
+    statusBar()->showMessage(tr("Bruit Uniforme(%1): ").arg(valeur));
     QString titre = QString("Bruit Uniforme(%1): ").arg(valeur) + windowTitle[qHash(label)];
     calculerBruitUniforme (image, titre, valeur);
 }
@@ -1947,7 +2102,7 @@ void MainWindow::afficherBruitPoivreEtSel (QLabel* label) {
     bool ok;
     double pourcentage = QInputDialog::getDouble(this, tr("Bruit Poivre et Sel"), tr("Pourcentage (entre 0 et 100): "), 10, 0, 100, 2, &ok, 0);
     if (!ok) return;
-    this->statusBar()->showMessage(tr("Poivre et Sel(%1%): ").arg(pourcentage));
+    statusBar()->showMessage(tr("Poivre et Sel(%1%): ").arg(pourcentage));
     QString titre = QString("Poivre et Sel(%1%): ").arg(pourcentage) + windowTitle[qHash(label)];
     calculerBruitPoivreEtSel (image, titre, pourcentage/100);
 }
@@ -1991,7 +2146,7 @@ void MainWindow::afficherUniforme () {
     bool ok;
     int valeur = QInputDialog::getInt(this, tr("Image Uniforme"), tr("Valeur (entre 0 et 255)"), 0, 0, 255, 1, &ok, 0);
     if (!ok) return;
-    this->statusBar()->showMessage(tr("Image Uniforme(%1)").arg(valeur));
+    statusBar()->showMessage(tr("Image Uniforme(%1)").arg(valeur));
     QString titre = QString("Image Uniforme(%1)").arg(valeur);
     calculerUniforme(image, titre, valeur);
 }
@@ -2001,7 +2156,7 @@ void MainWindow::afficherUniforme (QLabel* label) {
     bool ok;
     int valeur = QInputDialog::getInt(this, tr("Image Uniforme"), tr("Valeur (entre 0 et 255)"), 0, 0, 255, 1, &ok, 0);
     if (!ok) return;
-    this->statusBar()->showMessage(tr("Image Uniforme(%1)").arg(valeur));
+    statusBar()->showMessage(tr("Image Uniforme(%1)").arg(valeur));
     QString titre = QString("Image Uniforme(%1): ").arg(valeur) + windowTitle[qHash(label)];
     calculerUniforme(image, titre, valeur);
 }
@@ -2048,24 +2203,29 @@ void MainWindow::calculerRampe (QImage& argbImage, QString titre) {
 void MainWindow::afficherMoyenneur3x3 (QLabel* label) {
     QImage image = label->pixmap()->toImage();
     QString titre = QString("Moyenneur 3x3: ") + windowTitle[qHash(label)];
-    calculerMoyenneur3x3  (image, titre, cv::Point(-1,-1), BORDER_TYPE);
+    uint64 t0 = cv::getTickCount();
+    image = calculerMoyenneur3x3  (image, cv::Point(-1,-1), BORDER_TYPE);
+    double t = 1000 * (cv::getTickCount() - t0)/cv::getTickFrequency();
+    dernierTempsDeCalcul = t;
+    //tempsCalcul[qHash(label)] = t;
+    creerFenetre(QPixmap::fromImage(image), titre);
 }
 
-void MainWindow::calculerMoyenneur3x3 (QImage& argbImage, QString titre, cv::Point anchor, int borderType) {
-    cv::Mat bgrMat;
+const QImage& MainWindow::calculerMoyenneur3x3 (const QImage& argbImage, cv::Point anchor, int borderType) {
+    static cv::Mat bgrMat;
     QImageTocvMat(argbImage, bgrMat);
 
-    cv::Mat kern = (cv::Mat_<uchar>(3,3) <<
-    1, 1, 1,
-    1, 1, 1,
-    1, 1, 1);
+    int ksize = 3;
     cv::Mat res;
-    cv::filter2D(bgrMat, res, CV_16UC3, kern, anchor, 0, borderType);
-    bgrMat = res * 1.d/9;
-    bgrMat.convertTo(bgrMat, CV_8U, 1, 0);
+    cv::filter2D(bgrMat, res, CV_16UC3, cv::Mat::ones(ksize, ksize, CV_8UC1), anchor, 0, borderType);
+    res *= 1./(ksize*ksize);
+    res.convertTo(bgrMat, CV_8U, 1, 0);
 
-    cvMatToQImage(bgrMat, argbImage);
-    creerFenetre(QPixmap::fromImage(argbImage), titre);
+    static QImage result;
+    cvMatToQImage(bgrMat, result);
+    return result;
+    //cvMatToQImage(bgrMat, argbImage);
+    //creerFenetre(QPixmap::fromImage(argbImage), titre);
 }
 
 /*** calculer le temps d'execution
@@ -2079,19 +2239,27 @@ void MainWindow::afficherMoyenneurNxN (QLabel* label) {
     bool ok;
     int N = QInputDialog::getInt(this, tr("Moyenneur NxN séparable"), tr("N: "), 3, 3, 31, 1, &ok, 0);
     if (!ok) return;
-    this->statusBar()->showMessage(tr("Moyenneur %1x%2 séparable: ").arg(N).arg(N));
+    statusBar()->showMessage(tr("Moyenneur %1x%2 séparable: ").arg(N).arg(N));
     QString titre = QString("Moyenneur %1x%2 séparable: ").arg(N).arg(N) + windowTitle[qHash(label)];
-    calculerMoyenneurNxN (image, titre,cv::Size (N, N), cv::Point (-1, -1), BORDER_TYPE);
+    uint64 t0 = cv::getTickCount();
+    image = calculerMoyenneurNxN (image, cv::Size (N, N), cv::Point (-1, -1), BORDER_TYPE);
+    double t = 1000 * (cv::getTickCount() - t0)/cv::getTickFrequency();
+    dernierTempsDeCalcul = t;
+    //tempsCalcul[qHash(label)] = t;
+    creerFenetre(QPixmap::fromImage(image), titre);
 }
 
-void MainWindow::calculerMoyenneurNxN (QImage& argbImage, QString titre, cv::Size ksize, cv::Point anchor, int borderType) {
-    cv::Mat bgrMat;
+const QImage& MainWindow::calculerMoyenneurNxN (const QImage& argbImage, cv::Size ksize, cv::Point anchor, int borderType) {
+    static cv::Mat bgrMat;
     QImageTocvMat(argbImage, bgrMat);
 
     cv::blur (bgrMat, bgrMat, ksize, anchor, borderType);
 
-    cvMatToQImage(bgrMat, argbImage);
-    creerFenetre(QPixmap::fromImage(argbImage), titre);
+    static QImage result;
+    cvMatToQImage(bgrMat, result);
+    return result;
+    //cvMatToQImage(bgrMat, argbImage);
+    //creerFenetre(QPixmap::fromImage(argbImage), titre);
 }
 
 void MainWindow::afficherLaplacien (QLabel* label) {
@@ -2102,7 +2270,7 @@ void MainWindow::afficherLaplacien (QLabel* label) {
     DoubleIntDialog d(this, QString("Laplacien"), QString("Gain (entre 1 et 30): "), 1, 1, 30, 2, QString("Offset (entre 0 et 255): "), 0, 0, 255, 1);
     d.run(gain, offset, ok);
     if (!ok) return;
-    this->statusBar()->showMessage(tr("Laplacien(%1;%2): ").arg(gain).arg(offset));
+    statusBar()->showMessage(tr("Laplacien(%1;%2): ").arg(gain).arg(offset));
     QString titre = QString("Laplacien(%1;%2): ").arg(gain).arg(offset) + windowTitle[qHash(label)];
     calculerLaplacien(image, titre, 3, gain, offset, BORDER_TYPE);
 }
@@ -2128,7 +2296,7 @@ void MainWindow::afficherMedian (QLabel* label) {
     bool ok;
     int N = QInputDialog::getInt(this, tr("Filtre Médian"), tr("N: "), 3, 3, 31, 2, &ok, 0);
     if (!ok) return;
-    this->statusBar()->showMessage(tr("Filtre Médian %1x%2").arg(N).arg(N));
+    statusBar()->showMessage(tr("Filtre Médian %1x%2").arg(N).arg(N));
     QString titre = QString("Filtre Médian %1x%2: ").arg(N).arg(N) + windowTitle[qHash(label)];
     calculerMedian(image, titre, N);
 }
@@ -2149,7 +2317,7 @@ afficherVFiltre (QLabel* label) {
     bool ok;
     int N = QInputDialog::getInt(this, tr("V-Filtre"), tr("Taille de la fenêtre: "), 3, 3, 31, 2, &ok, 0);
     if (!ok) return;
-    this->statusBar()->showMessage(tr("V-Filtre(%1): ").arg(N));
+    statusBar()->showMessage(tr("V-Filtre(%1): ").arg(N));
     QString titre = QString("V-Filtre(%1): ").arg(N) + windowTitle[qHash(label)];
     calculerVFiltre(image, titre, N);
 }
@@ -2455,7 +2623,7 @@ void MainWindow::afficherSeuillageManuelSimple (QLabel* label) {
     bool ok;
     int seuil = QInputDialog::getInt(this, tr("Seuillage Simple"), tr("Seuil (entre 0 et 255): "), 127, 0, 255, 1, &ok, 0);
     if (!ok) return;
-    this->statusBar()->showMessage(tr("Seuillage(%1): ").arg(seuil));
+    statusBar()->showMessage(tr("Seuillage(%1): ").arg(seuil));
     QString titre = QString("Seuillage(%1): ").arg(seuil) + windowTitle[qHash(label)];
     calculerSeuillageManuelSimple (image, titre, seuil, SEUILLAGE_VALEUR_MAX);
 }
@@ -2475,7 +2643,7 @@ void MainWindow::afficherSeuillageVarianceSimple (QLabel* label) {
     bool ok = true;
     //int seuil = QInputDialog::getInt(this, tr("Seuillage Simple (Variance interclasse maximum)"), tr("Seuil (entre 0 et 255): "), 127, 0, 255, 1, &ok, 0);
     if (!ok) return;
-    this->statusBar()->showMessage(tr("Seuillage Simple [Variance]: "));//.arg(seuil));
+    statusBar()->showMessage(tr("Seuillage Simple [Variance]: "));//.arg(seuil));
     QString titre = QString("Seuillage Simple [Variance]: ") + windowTitle[qHash(label)];
     calculerSeuillageVarianceSimple (image, titre, 0, 255);
 }
@@ -2642,14 +2810,13 @@ void MainWindow::afficherSeuillageManuelDouble (QLabel* label) {
     IntIntDialog d(this, QString("Seuillage Double"), QString("Seuil Inférieur (entre 0 et 255): "), 84, 0, 255, 1, QString("Seuil Supérieur (entre 0 et 255): "), 252, 0, 255, 1);
     d.run(seuil1, seuil2, ok);
     if (!ok) return;
-    this->statusBar()->showMessage(tr("Seuillage Double Manuel(%1;%2): ").arg(seuil1).arg(seuil2));
+    statusBar()->showMessage(tr("Seuillage Double Manuel(%1;%2): ").arg(seuil1).arg(seuil2));
     QString titre = QString("Seuillage Double Manuel(%1;%2): ").arg(seuil1).arg(seuil2) + windowTitle[qHash(label)];
-    calculerSeuillageManuelDouble(image, seuil1, seuil2, 0, SEUILLAGE_VALEUR_MIL, SEUILLAGE_VALEUR_MAX);
+    image = calculerSeuillageManuelDouble(image, seuil1, seuil2, 0, SEUILLAGE_VALEUR_MIL, SEUILLAGE_VALEUR_MAX);
     creerFenetre(QPixmap::fromImage(image), titre);
 }
 
-void MainWindow::calculerSeuillageManuelDouble (QImage& argbImage, double seuilBas, double seuilHaut, double minVal, double midVal, double maxVal) {
-
+const QImage& MainWindow::calculerSeuillageManuelDouble (const QImage& argbImage, double seuilBas, double seuilHaut, double minVal, double midVal, double maxVal) {
     static cv::Mat bgrMat;
     QImageTocvMat(argbImage, bgrMat);
 
@@ -2671,8 +2838,10 @@ void MainWindow::calculerSeuillageManuelDouble (QImage& argbImage, double seuilB
         (*it)[2] = (*it)[2] < seuilBas ? minVal : (*it)[2] > seuilHaut ? maxVal : midVal;
     }
 
-    cvMatToQImage(bgrMat, argbImage);
+    static QImage result;
+    cvMatToQImage(bgrMat, result);
     //creerFenetre(QPixmap::fromImage(argbImage), titre);
+    return result;
 }
 
 void MainWindow::afficherSeuillageVarianceDouble (QLabel* label) {
@@ -2682,7 +2851,7 @@ void MainWindow::afficherSeuillageVarianceDouble (QLabel* label) {
     IntIntDialog d(this, QString("Seuillage Double [Variance]"), QString("Seuil Inférieur (entre 0 et 255): "), 84, 0, 255, 1, QString("Seuil Supérieur (entre 0 et 255): "), 252, 0, 255, 1);
     d.run(seuil1, seuil2, ok);
     if (!ok) return;
-    this->statusBar()->showMessage(tr("Seuillage Double [Variance](%1;%2): ").arg(seuil1).arg(seuil2));
+    statusBar()->showMessage(tr("Seuillage Double [Variance](%1;%2): ").arg(seuil1).arg(seuil2));
     QString titre = QString("Seuillage Double [Variance](%1;%2): ").arg(seuil1).arg(seuil2) + windowTitle[qHash(label)];
     calculerSeuillageVarianceDouble (image, titre, seuil1, seuil2, 0, SEUILLAGE_VALEUR_MIL, SEUILLAGE_VALEUR_MAX);
 }
@@ -2989,7 +3158,7 @@ void MainWindow::afficherSeuillageParHysteresis (QLabel* label) {
     IntIntDialog d(this, QString("Seuillage par Hystérésis"), QString("Seuil Inférieur (entre 0 et 255): "), 84, 0, 255, 1, QString("Seuil Supérieur (entre 0 et 255): "), 252, 0, 255, 1);
     d.run(seuil1, seuil2, ok);
     if (!ok) return;
-    this->statusBar()->showMessage(tr("Seuillage par Hystérésis(%1;%2): ").arg(seuil1).arg(seuil2));
+    statusBar()->showMessage(tr("Seuillage par Hystérésis(%1;%2): ").arg(seuil1).arg(seuil2));
     QString titre = QString("Seuillage par Hystérésis(%1;%2): ").arg(seuil1).arg(seuil2) + windowTitle[qHash(label)];
     calculerSeuillageParHysteresis (image, titre, seuil1, seuil2);///ratio seuilHaut/seuilBas preferablement entre 3:1 et 2:1
 }
@@ -3006,10 +3175,24 @@ void MainWindow::calculerSeuillageParHysteresis (QImage& argbImage, QString titr
     cv::Canny (gMat, edges, seuilBas, seuilHaut, ksize, utiliserNormeL2);
     cv::Mat dst (bgrMat.size(), bgrMat.type(), cv::Scalar::all(0));
     bgrMat.copyTo (dst, edges);*/
-    calculerSeuillageManuelDouble(argbImage, seuilBas, seuilHaut, 0, SEUILLAGE_VALEUR_MIL, SEUILLAGE_VALEUR_MAX);
-    QImageTocvMat(argbImage, bgrMat);
+    //calculerSeuillageManuelDouble(argbImage, seuilBas, seuilHaut, 0, SEUILLAGE_VALEUR_MIL, SEUILLAGE_VALEUR_MAX);
+    uchar minVal = 0, midVal = SEUILLAGE_VALEUR_MIL, maxVal = SEUILLAGE_VALEUR_MAX;
+    /*cv::Vec3b pixel;
+    cv::MatIterator_<cv::Vec3b> it, end;
+    for(it = bgrMat.begin<cv::Vec3b>(), end = bgrMat.end<cv::Vec3b>(); it != end; ++it) {
+        pixel = *it;
+        (*it)[0] = pixel[0] < seuilBas ? minVal : pixel[0] > seuilHaut ? maxVal : midVal;
+        (*it)[1] = pixel[1] < seuilBas ? minVal : pixel[1] > seuilHaut ? maxVal : midVal;
+        (*it)[2] = pixel[2] < seuilBas ? minVal : pixel[2] > seuilHaut ? maxVal : midVal;
+    }*/
+    //QImageTocvMat(argbImage, bgrMat);
     cv::cvtColor(bgrMat, bgrMat, CV_BGR2GRAY);
-    cv::Mat validationfw = bgrMat.clone(); //cv::Mat validation; bgrMat.convertTo(validation, CV_32F, 1., 0); cv::distanceTransform(validation, validation, CV_DIST_L1, 3);
+    uchar v; cv::MatIterator_<uchar> it, end;
+    for(it = bgrMat.begin<uchar>(), end = bgrMat.end<uchar>(); it != end; ++it) {
+        v = *it;
+        *it = v < seuilBas ? minVal : v > seuilHaut ? maxVal : midVal;
+    }
+    cv::Mat validationfw = bgrMat.clone();
     cv::Mat validationbw = bgrMat.clone();
     int rows = bgrMat.rows;
     int cols = bgrMat.cols;cv::imshow("pre", bgrMat);
@@ -3023,7 +3206,7 @@ void MainWindow::calculerSeuillageParHysteresis (QImage& argbImage, QString titr
             traiterPixelHysteresisbw (bgrMat, validationbw, x, y, cols, rows);
         }
     }cv::imshow("bw", bgrMat);
-    cv::threshold(bgrMat, bgrMat, SEUILLAGE_VALEUR_MIL+1, SEUILLAGE_VALEUR_MAX, cv::THRESH_BINARY);cv::imshow("thresh", bgrMat);
+    cv::threshold(bgrMat, bgrMat, midVal+1, maxVal, cv::THRESH_BINARY);cv::imshow("thresh", bgrMat);
     cv::cvtColor(bgrMat, bgrMat, CV_GRAY2BGR);
 
     cvMatToQImage(bgrMat, argbImage);
@@ -3239,7 +3422,7 @@ void MainWindow::afficherBiseuillage (QLabel* label) {
     IntIntDialog d(this, QString("Biseuillage"), QString("Seuil Inférieur (entre 0 et 255): "), 84, 0, 255, 1, QString("Seuil Supérieur (entre 0 et 255): "), 252, 0, 255, 1);
     d.run(seuil1, seuil2, ok);
     if (!ok) return;
-    this->statusBar()->showMessage(tr("Biseuillage(%1;%2): ").arg(seuil1).arg(seuil2));
+    statusBar()->showMessage(tr("Biseuillage(%1;%2): ").arg(seuil1).arg(seuil2));
     QString titre = QString("Biseuillage(%1;%2): ").arg(seuil1).arg(seuil2) + windowTitle[qHash(label)];
     calculerBiseuillage (image, titre, seuil1, seuil2);
 }
@@ -3248,72 +3431,36 @@ void MainWindow::calculerBiseuillage (QImage& argbImage, QString titre, int seui
     cv::Mat bgrMat;
     QImageTocvMat(argbImage, bgrMat);
 
-    calculerSeuillageManuelDouble(argbImage, seuilBas, seuilHaut, 1, SEUILLAGE_VALEUR_MIL, SEUILLAGE_VALEUR_MAX);
-    QImageTocvMat(argbImage, bgrMat);
     cv::cvtColor(bgrMat, bgrMat, CV_BGR2GRAY);
-    cv::Mat validation = bgrMat.clone(); //cv::Mat validation; bgrMat.convertTo(validation, CV_32F, 1., 0); cv::distanceTransform(validation, validation, CV_DIST_L1, 3);
-    int rows = bgrMat.rows;
-    int cols = bgrMat.cols;
-    for (int y = 0; y < rows; y++) {
-        for (int x = 0; x < cols; x++) {
-            traiterPixelBiseuillage (bgrMat, validation, x, y, cols, rows);
-        }
+
+    uchar minVal = 0, midVal = SEUILLAGE_VALEUR_MIL, maxVal = SEUILLAGE_VALEUR_MAX;
+    uchar v; cv::MatIterator_<uchar> it, end;
+    for(it = bgrMat.begin<uchar>(), end = bgrMat.end<uchar>(); it != end; ++it) {
+        v = *it;
+        *it = v < seuilBas ? minVal : v > seuilHaut ? maxVal : midVal;
     }
+
+    cv::Mat validationBlanc, validationNoir;
+    cv::threshold(bgrMat, validationBlanc, midVal, maxVal, cv::THRESH_BINARY_INV);
+    cv::threshold(bgrMat, validationNoir, midVal-1, maxVal, cv::THRESH_BINARY);
+
+    cv::Mat distanceBlanc, distanceNoir;
+    cv::distanceTransform(validationBlanc, distanceBlanc, CV_DIST_L2, 3);
+    cv::distanceTransform(validationNoir, distanceNoir, CV_DIST_L2, 3);
+
+    int rows = bgrMat.rows;
+    int cols = bgrMat.cols * rows;
+    uchar* p = (uchar*)bgrMat.data;
+    float* d1 = (float*)distanceBlanc.data,* d2 = (float*)distanceNoir.data;
+    for (int i = 0; i < cols; i++) {
+        if(p[i] == midVal)
+            p[i] = d1[i] < d2 [i] ? maxVal : minVal;
+    }
+
     cv::cvtColor(bgrMat, bgrMat, CV_GRAY2BGR);
 
     cvMatToQImage(bgrMat, argbImage);
     creerFenetre(QPixmap::fromImage(argbImage), titre);
-}
-
-
-void MainWindow::traiterPixelBiseuillage (cv::Mat& bgrMat, cv::Mat& validation, int x, int y, int cols, int rows) {
-    uchar v; uchar* p = (uchar*) validation.data;
-    v = p[y*cols+x];
-    if(v == 0) return;
-    if (x < cols-1) {
-        if (y < rows-1) {
-            cv::Mat voisinage (bgrMat, cv::Rect(x, y, 2, 2));
-            if(v == SEUILLAGE_VALEUR_MAX) {
-                if(voisinage.at<uchar>(0, 1) == SEUILLAGE_VALEUR_MIL) voisinage.at<uchar>(0, 1) = 255;
-                if(voisinage.at<uchar>(1, 1) == SEUILLAGE_VALEUR_MIL) voisinage.at<uchar>(1, 1) = 255;
-                if(voisinage.at<uchar>(1, 0) == SEUILLAGE_VALEUR_MIL) voisinage.at<uchar>(1, 0) = 255;
-            }
-            traiterPixelBiseuillage (bgrMat, validation, x+1, y, cols, rows);
-            traiterPixelBiseuillage (bgrMat, validation, x+1, y+1, cols, rows);
-            traiterPixelBiseuillage (bgrMat, validation, x, y+1, cols, rows);
-            if(v == SEUILLAGE_VALEUR_MIL) {
-                if(voisinage.at<uchar>(0, 1) == 255 || voisinage.at<uchar>(1, 1) == 255 || voisinage.at<uchar>(1, 0) == 255)
-                    voisinage.at<uchar>(0, 0) = 255;
-            }
-        } else {
-            cv::Mat voisinage (bgrMat, cv::Rect(x, y, 2, 1));
-            if(v == SEUILLAGE_VALEUR_MAX) {
-                if(voisinage.at<uchar>(0, 1) == SEUILLAGE_VALEUR_MIL) voisinage.at<uchar>(0, 1) = 255;
-            }
-            traiterPixelBiseuillage (bgrMat, validation, x+1, y, cols, rows);
-            if(v == SEUILLAGE_VALEUR_MIL) {
-                if(voisinage.at<uchar>(0, 1) == 255)
-                    voisinage.at<uchar>(0, 0) = 255;
-            }
-        }
-    } else {
-        if (y < rows-1) {
-            cv::Mat voisinage (bgrMat, cv::Rect(x, y, 1, 2));
-            if(v == SEUILLAGE_VALEUR_MAX) {
-                if(voisinage.at<uchar>(1, 0) == SEUILLAGE_VALEUR_MIL) voisinage.at<uchar>(1, 0) = 255;
-            }
-            traiterPixelBiseuillage (bgrMat, validation, x, y+1, cols, rows);
-            if(v == SEUILLAGE_VALEUR_MIL) {
-                if(voisinage.at<uchar>(1, 0) == 255)
-                    voisinage.at<uchar>(0, 0) = 255;
-            }
-        } else {
-            //rien;
-            //cv::imshow("v", validation);cv::waitKey(30000);
-            //cv::imshow("b", bgrMat);cv::waitKey(30000);
-        }
-    }
-    p[y*cols+x] = 0;
 }
 
 void MainWindow::afficherGradientSobel (QLabel* label, TypeSobel type) {
@@ -3324,7 +3471,7 @@ void MainWindow::afficherGradientSobel (QLabel* label, TypeSobel type) {
     DoubleIntDialog d(this, QString("Gradient Sobel"), QString("Gain (entre 1 et 30): "), 1, 1, 30, 2, QString("Offset (entre 0 et 255): "), 0, 0, 255, 1);
     d.run(gain, offset, ok);
     if (!ok) return;
-    this->statusBar()->showMessage(tr("Gradient Sobel %1(%2;%3): ").arg(type == SOBEL_NORME ? "[Norme]" : type == SOBEL_X ? "X" : type == SOBEL_Y ? "Y" : "").arg(gain).arg(offset));
+    statusBar()->showMessage(tr("Gradient Sobel %1(%2;%3): ").arg(type == SOBEL_NORME ? "[Norme]" : type == SOBEL_X ? "X" : type == SOBEL_Y ? "Y" : "").arg(gain).arg(offset));
     QString titre = QString("Gradient Sobel %1(%2;%3): ").arg(type == SOBEL_NORME ? "[Norme]" : type == SOBEL_X ? "X" : type == SOBEL_Y ? "Y" : "").arg(gain).arg(offset) + windowTitle[qHash(label)];
     calculerGradientSobel (image, titre, type, 3, gain, offset, BORDER_TYPE);
 }
@@ -3369,10 +3516,10 @@ void MainWindow::calculerGradientSobel (QImage& argbImage, QString titre, TypeSo
         cv::convertScaleAbs(dst_y, dst_y);
         cv::addWeighted (dst_x, 0.5, dst_y, 0.5, 0, dst_total);*/
         //cv::imshow("Manhattan", dst_total);
-        x = x.mul(x);
+        /*x = x.mul(x);
         y = y.mul(y);
         s = x + y;
-        cv::sqrt(s, dst_total);
+        cv::sqrt(s, dst_total);*/cv::magnitude(x, y, dst_total);
         cv::normalize(dst_total, dst_total, 0, 1, CV_MINMAX);
         dst_total.convertTo(dst_total, CV_8U, 255, 0);
         //cv::imshow("Euclidean", dst_total);
@@ -3390,7 +3537,7 @@ void MainWindow::afficherGradientPrewitt (QLabel* label, TypePrewitt type) {
     DoubleIntDialog d(this, QString("Gradient Prewitt"), QString("Gain (entre 1 et 30): "), 1, 1, 30, 2, QString("Offset (entre 0 et 255): "), 0, 0, 255, 1);
     d.run(gain, offset, ok);
     if (!ok) return;
-    this->statusBar()->showMessage(tr("Gradient Prewitt %1(%2;%3): ").arg(type == PREWITT_NORME ? "[Norme]" : type == PREWITT_X ? "X" : type == PREWITT_Y ? "Y" : "").arg(gain).arg(offset));
+    statusBar()->showMessage(tr("Gradient Prewitt %1(%2;%3): ").arg(type == PREWITT_NORME ? "[Norme]" : type == PREWITT_X ? "X" : type == PREWITT_Y ? "Y" : "").arg(gain).arg(offset));
     QString titre = QString("Gradient Prewitt %1(%2;%3): ").arg(type == PREWITT_NORME ? "[Norme]" : type == PREWITT_X ? "X" : type == PREWITT_Y ? "Y" : "").arg(gain).arg(offset) + windowTitle[qHash(label)];
     calculerGradientPrewitt (image, titre, type, gain, offset, BORDER_TYPE);
 }
@@ -3439,10 +3586,10 @@ void MainWindow::calculerGradientPrewitt (QImage& argbImage, QString titre, Type
         //cv::convertScaleAbs(dst_y, dst_y);
         //cv::addWeighted (dst_x, 0.5, dst_y, 0.5, 0, dst_total);
         //cv::imshow("Manhattan", dst_total);
-        x = x.mul(x);
+        /*x = x.mul(x);
         y = y.mul(y);
         s = x + y;
-        cv::sqrt(s, dst_total);
+        cv::sqrt(s, dst_total);*/cv::magnitude(x, y, dst_total);
         cv::normalize(dst_total, dst_total, 0, 1, CV_MINMAX);
         dst_total.convertTo(dst_total, CV_8U, 255, 0);
         //cv::imshow("Euclidean", dst_total);
@@ -3469,7 +3616,7 @@ void MainWindow::on_actionOuvrir_triggered () {
     QString nomFichier = fileDialog.getOpenFileName(this, tr("Ouvrir Image"), tr(DOSSIER_DEFAUT_OUVERTURE_IMAGES), tr(PATTERN_OUVERTURE_IMAGES_QT_ET_OPENCV));
     if (nomFichier.isEmpty())
         return;
-    ouvrirImage(nomFichier.toStdString ().data ());
+    ouvrirImage(nomFichier.toStdString().data());
 }
 
 void MainWindow::on_actionFermerTout_triggered () {

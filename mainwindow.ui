@@ -55,6 +55,10 @@
      <addaction name="actionMRI"/>
      <addaction name="actionColdToHot"/>
      <addaction name="actionJet"/>
+     <addaction name="separator"/>
+     <addaction name="actionNuance"/>
+     <addaction name="separator"/>
+     <addaction name="actionEtiquetage"/>
     </widget>
     <addaction name="actionTailleNormale"/>
     <addaction name="actionZoomIn"/>
@@ -956,6 +960,22 @@
    </property>
    <property name="text">
     <string>Fermer Tout</string>
+   </property>
+  </action>
+  <action name="actionNuance">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Nuance</string>
+   </property>
+  </action>
+  <action name="actionEtiquetage">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Étiquetage</string>
    </property>
   </action>
  </widget>
