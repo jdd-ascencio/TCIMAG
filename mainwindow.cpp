@@ -78,6 +78,7 @@ MainWindow::MainWindow (QWidget* parent) : QMainWindow (parent), ui (new Ui::Mai
     rng = cv::RNG(cv::getTickCount());
     dernierTempsDeCalcul = 0;
 
+    ///DEBUG
     //ouvrirImage("../TCIMAG_ressources/lena.bmp");
     //ouvrirImage("../TCIMAG_ressources/lenaGray.bmp");
     //ouvrirImage("../TCIMAG_ressources/lena.jpg");
@@ -87,13 +88,7 @@ MainWindow::MainWindow (QWidget* parent) : QMainWindow (parent), ui (new Ui::Mai
     //ouvrirImage("../TCIMAG_ressources/lena.ppm");
     //ouvrirImage("../TCIMAG_ressources/lena.tiff");
 
-    ouvrirImage("../TCIMAG_ressources/lenaGray.bmp");
-    //ouvrirImage("../TCIMAG_ressources/QUITO.PNG");
-    //ouvrirImage("../TCIMAG_ressources/RONDELLE.PNG");
-    //ouvrirImage("../TCIMAG_ressources/SPOT.PNG");
-    //ouvrirImage("../TCIMAG_ressources/BRUIT.PNG");
-
-    //PARTIE 1
+    ///PARTIE_1
     //ouvrirImage("../TCIMAG_ressources/AQUITAIN.PNG");
     //ouvrirImage("../TCIMAG_ressources/BUREAU.PNG");
     //ouvrirImage("../TCIMAG_ressources/CLEF.PNG");
@@ -105,7 +100,7 @@ MainWindow::MainWindow (QWidget* parent) : QMainWindow (parent), ui (new Ui::Mai
     //ouvrirImage("../TCIMAG_ressources/SIC.PNG");
     //ouvrirImage("../TCIMAG_ressources/SPOT.PNG");
 
-    //PARTIE 2
+    ///PARTIE_2
     //ouvrirImage("../TCIMAG_ressources/ANGIO.PNG");
     //ouvrirImage("../TCIMAG_ressources/BOUGIES.PNG");
     //ouvrirImage("../TCIMAG_ressources/LENA.PNG");
@@ -113,7 +108,7 @@ MainWindow::MainWindow (QWidget* parent) : QMainWindow (parent), ui (new Ui::Mai
     //ouvrirImage("../TCIMAG_ressources/QUITO.PNG");
     //ouvrirImage("../TCIMAG_ressources/RONDELLE.PNG");
 
-    //PARTIE 3
+    ///PARTIE_3
     //ouvrirImage("../TCIMAG_ressources/AMOUR.PNG");
     //ouvrirImage("../TCIMAG_ressources/BRUIT.PNG");
     //ouvrirImage("../TCIMAG_ressources/FILM.PNG");
@@ -123,72 +118,6 @@ MainWindow::MainWindow (QWidget* parent) : QMainWindow (parent), ui (new Ui::Mai
     //ouvrirImage("../TCIMAG_ressources/OBJETS.PNG");
     //ouvrirImage("../TCIMAG_ressources/RONDELLE.PNG");
     //ouvrirImage("../TCIMAG_ressources/SPOT.PNG");
-
-    /*
-    //menu fichier
-    ui->actionFermerTout->setEnabled(true);
-
-    //menu affichage
-    ui->actionTailleNormale->setEnabled(true);
-    ui->actionCvtColorInverse->setEnabled(true);
-    ui->actionThermal->setEnabled(true);
-    ui->actionCvtColor->setEnabled(true);
-    ui->actionMRI->setEnabled(true);
-    ui->actionColdToHot->setEnabled(true);
-    ui->actionJet->setEnabled(true);
-    ui->actionDupliquer->setEnabled(true);
-
-    //menu outils
-    ui->actionAffichage->setEnabled(true);
-    ui->actionRecadrage->setEnabled(true);
-    ui->actionNegatif->setEnabled(true);
-    ui->actionAddition->setEnabled(true);
-    ui->actionCalibration->setEnabled(true);
-    ui->actionEgalisation->setEnabled(true);
-    ui->actionExponentielle->setEnabled(true);
-    ui->actionLogarithmique->setEnabled(true);
-    ui->actionSoustraction->setEnabled(true);
-    ui->actionCombinaison->setEnabled(true);
-    ui->actionMinimum->setEnabled(true);
-    ui->actionMaximum->setEnabled(true);
-    ui->actionAND->setEnabled(true);
-    ui->actionOR->setEnabled(true);
-    ui->actionXOR->setEnabled(true);
-    ui->actionNOT->setEnabled(true);
-    ui->actionPlanBinaire->setEnabled(true);
-    ui->actionQuantification->setEnabled(true);
-    ui->actionChangementDEchelle->setEnabled(true);
-    ui->actionRotation->setEnabled(true);
-    ui->actionRotationInterpolee->setEnabled(true);
-    ui->actionTransposee->setEnabled(true);
-    ui->actionVuePerspective->setEnabled(true);
-    ui->actionBruitUniforme->setEnabled(true);
-    ui->actionBruitPoivreEtSel->setEnabled(true);
-    ui->actionUniforme->setEnabled(true);
-    ui->actionRampe->setEnabled(true);
-
-    //menu filtrage
-    ui->actionMoyenneur3x3->setEnabled(true);
-    ui->actionMoyenneurNxN->setEnabled(true);
-    ui->actionLaplacien->setEnabled(true);
-    ui->actionMedian->setEnabled(true);
-    ui->actionVFiltre->setEnabled(true);
-    ui->actionFFT->setEnabled(true);
-
-    //menu segmentation
-    ui->actionManuelSimple->setEnabled(true);
-    ui->actionVarianceSimple->setEnabled(true);
-    ui->actionManuelDouble->setEnabled(true);
-    ui->actionVarianceDouble->setEnabled(true);
-    ui->actionSeuillageParHysteresis->setEnabled(true);
-    ui->actionBiseuillage->setEnabled(true);
-    ui->actionNormeSobel->setEnabled(true);
-    ui->actionGradientXSobel->setEnabled(true);
-    ui->actionGradientYSobel->setEnabled(true);
-    ui->actionNormePrewitt->setEnabled(true);
-    ui->actionGradientXPrewitt->setEnabled(true);
-    ui->actionGradientYPrewitt->setEnabled(true);
-    */
 }
 
 MainWindow::~MainWindow () {
@@ -268,7 +197,6 @@ bool MainWindow::eventFilter (QObject* watched, QEvent* e) {
         //QPixmap pixmap = QPixmap::grabWidget(src, x, y, 1, 1);
         QPixmap pixmap = src->grab (QRect (x, y, 1, 1));
         QRgb rgb = pixmap.toImage().pixel(0,0);
-        //utiliser une police a largeur constante?
         QString message = QString ("[X,Y]=[Alpha,Red,Green,Blue]Gray   |   [%1,%2]=[%3,%4,%5,%6]%7")
                 .arg (QString::number (x), 3).arg (QString::number (y), 3)
                 .arg (QString::number (qAlpha (rgb)), 3)
@@ -282,16 +210,9 @@ bool MainWindow::eventFilter (QObject* watched, QEvent* e) {
         activerActionsUnaires();
         if(getFirstUnfocusedArea() != NULL) activerActionsBinaires();
         updateZoomActions (getLabelInArea ((QScrollArea*) watched));
-    //} else if (e->type() == QEvent::WindowDeactivate) {
-    //    std::cerr << "win deact: " << typeid(*watched).name() << std::endl;
-    //} else if (e->type() == QEvent::Destroy) {
-    //    std::cerr << std::endl << "destroyed: " << typeid(*watched).name() << std::endl ;
     } else if (e->type() == QEvent::Close) {
         if (typeid(*watched) == typeid(QScrollArea)) {
-            //std::cerr << "closed: " << typeid(*watched).name() << std::endl;
-            /*getLabelInArea((QScrollArea*) watched)->deleteLater();
-            watched->deleteLater();
-            watched->parent()->deleteLater();*/detruire((QScrollArea*) watched);
+            detruire((QScrollArea*) watched);
             desactiverActionsBinaires();
             desactiverActionsUnaires();
         }
@@ -475,7 +396,7 @@ void MainWindow::activerActionsUnaires() {
     ui->actionManuelSimple->setEnabled(true);
     ui->actionVarianceSimple->setEnabled(true);
     ui->actionManuelDouble->setEnabled(true);
-    ui->actionVarianceDouble->setEnabled(true);
+    //ui->actionVarianceDouble->setEnabled(true);
     ui->actionSeuillageParHysteresis->setEnabled(true);
     ui->actionBiseuillage->setEnabled(true);
     ui->actionNormeSobel->setEnabled(true);
@@ -516,7 +437,7 @@ void MainWindow::desactiverActionsUnaires() {
     ui->actionRotation->setEnabled(false);
     ui->actionRotationInterpolee->setEnabled(false);
     ui->actionTransposee->setEnabled(false);
-    ui->actionVuePerspective->setEnabled(false);
+    //ui->actionVuePerspective->setEnabled(false);
     ui->actionBruitUniforme->setEnabled(false);
     ui->actionBruitPoivreEtSel->setEnabled(false);
     ui->actionUniforme->setEnabled(false);
@@ -653,7 +574,6 @@ void MainWindow::fermerTout() {
         if (scrollArea == NULL)
             continue;
         scrollArea->close();
-        //detruire(scrollArea);
     }
 
 }
@@ -718,7 +638,7 @@ void MainWindow::calculerPalette (QImage& argbImage, QString titre, CodePalette 
     case CVT_COLOR_INVERSE:
         p = BlueLUT.data;
         for(int i = 0; i < 88; ++i)
-            p[i] = round(1/(3*0.114)*i);//+226;
+            p[i] = round(1/(3*0.114)*i);
         for(int i = 88; i < 175; ++i)
             p[i] = 255-round(1/(3*0.114)*i);
         for(int i = 175; i < 256; ++i)
@@ -726,11 +646,11 @@ void MainWindow::calculerPalette (QImage& argbImage, QString titre, CodePalette 
 
         p = GreenLUT.data;
         for(int i = 0; i < 256; ++i)
-            p[i] = cv::saturate_cast<uchar>(1/(3*0.587)*i);//+105;
+            p[i] = cv::saturate_cast<uchar>(1/(3*0.587)*i);
 
         p = RedLUT.data;
         for(int i = 0; i < 256; ++i)
-            p[i] = cv::saturate_cast<uchar>(1/(3*0.299)*i);//+179;
+            p[i] = cv::saturate_cast<uchar>(1/(3*0.299)*i);
         break;
 
     case THERMAL:
@@ -876,6 +796,7 @@ void MainWindow::calculerPalette (QImage& argbImage, QString titre, CodePalette 
         break;
     }
 
+    ///Debug
     //std::cerr << BlueLUT << std::endl;
     //std::cerr << GreenLUT << std::endl;
     //std::cerr << RedLUT << std::endl;
@@ -886,293 +807,6 @@ void MainWindow::calculerPalette (QImage& argbImage, QString titre, CodePalette 
     cv::LUT(bgr_planes[1], GreenLUT, bgr_planes[1], 0);
     cv::LUT(bgr_planes[2], RedLUT, bgr_planes[2], 0);
     cv::merge(bgr_planes, bgrMat);
-
-    /*
-    uchar* p;
-    cv::Mat cvtColorBlueLUT(1, 256, CV_8U);
-    p = cvtColorBlueLUT.data;
-    for(int i = 0; i < 29; ++i)
-        p[i] = 255;
-    for(int i = 29; i < 179;)
-        p[i] = round(interpolatationLineaire(i++, 255, 29, 0, 179));
-    for(int i = 179; i < 256; ++i)
-        p[i] = 0;
-    std::cerr << cvtColorBlueLUT << std::endl;
-
-    cv::Mat cvtColorGreenLUT(1, 256, CV_8U);
-    p = cvtColorGreenLUT.data;
-    for(int i = 0; i < 29;)
-        p[i] = round(interpolatationLineaire(i++, 0, 0, 255, 29));
-    for(int i = 29; i < 179; ++i)
-        p[i] = 255;
-    for(int i = 179; i < 256; )
-        p[i] = round(interpolatationLineaire(i++, 255, 179, 0, 255));
-    std::cerr << cvtColorGreenLUT << std::endl;
-
-    cv::Mat cvtColorRedLUT(1, 256, CV_8U);
-    p = cvtColorRedLUT.data;
-    for(int i = 0; i < 29;++i)
-        p[i] = 0;
-    for(int i = 29; i < 179; )
-        p[i] = round(interpolatationLineaire(i++, 0, 29, 255, 179));
-    for(int i = 179; i < 256; ++i)
-        p[i] = 255;
-    std::cerr << cvtColorRedLUT << std::endl;
-
-    std::vector<cv::Mat> bgr_planes;
-    cv::split(bgrMat, bgr_planes);
-    cv::LUT(bgr_planes[0], cvtColorBlueLUT, bgr_planes[0], 0);
-    cv::LUT(bgr_planes[1], cvtColorGreenLUT, bgr_planes[1], 0);
-    cv::LUT(bgr_planes[2], cvtColorRedLUT, bgr_planes[2], 0);
-    cv::merge(bgr_planes, bgrMat);
-    */
-
-    /*
-    uchar* p;
-    cv::Mat cvtColorBlueLUT(1, 256, CV_8U);
-    p = cvtColorBlueLUT.data;
-    for(int i = 0; i < 88; ++i)
-        p[i] = round(1/(3*0.114)*i);//+226;
-    for(int i = 88; i < 175; ++i)
-        p[i] = 255-round(1/(3*0.114)*i);
-    for(int i = 175; i < 256; ++i)
-        p[i] = round(1/(3*0.114)*i);
-    std::cerr << cvtColorBlueLUT << std::endl;
-
-    cv::Mat cvtColorGreenLUT(1, 256, CV_8U);
-    p = cvtColorGreenLUT.data;
-    for(int i = 0; i < 256; ++i)
-        p[i] = cv::saturate_cast<uchar>(1/(3*0.587)*i);//+105;
-    std::cerr << cvtColorGreenLUT << std::endl;
-
-    cv::Mat cvtColorRedLUT(1, 256, CV_8U);
-    p = cvtColorRedLUT.data;
-    for(int i = 0; i < 256; ++i)
-        p[i] = cv::saturate_cast<uchar>(1/(3*0.299)*i);//+179;
-    std::cerr << cvtColorRedLUT << std::endl;
-
-    std::vector<cv::Mat> bgr_planes;
-    cv::split(bgrMat, bgr_planes);
-    cv::LUT(bgr_planes[0], cvtColorBlueLUT, bgr_planes[0], 0);
-    cv::LUT(bgr_planes[1], cvtColorGreenLUT, bgr_planes[1], 0);
-    cv::LUT(bgr_planes[2], cvtColorRedLUT, bgr_planes[2], 0);
-    cv::merge(bgr_planes, bgrMat);
-    */
-
-    /*
-    uchar* p;
-    cv::Mat cvtColorBlueLUT(1, 256, CV_8U);
-    p = cvtColorBlueLUT.data;
-    for(int i = 0; i < 29; ++i)
-        p[i] = 255;
-    for(int i = 29; i < 179;)
-        p[i] = round(interpolatationLineaire(i++, 255, 29, 0, 179));
-    for(int i = 179; i < 256; ++i)
-        p[i] = 0;
-    std::cerr << cvtColorBlueLUT << std::endl;
-
-    cv::Mat cvtColorGreenLUT(1, 256, CV_8U);
-    p = cvtColorGreenLUT.data;
-    for(int i = 0; i < 29;)
-        p[i] = round(interpolatationLineaire(i++, 0, 0, 255, 29));
-    for(int i = 29; i < 179; ++i)
-        p[i] = 255;
-    for(int i = 179; i < 256; )
-        p[i] = round(interpolatationLineaire(i++, 255, 179, 0, 255));
-    std::cerr << cvtColorGreenLUT << std::endl;
-
-    cv::Mat cvtColorRedLUT(1, 256, CV_8U);
-    p = cvtColorRedLUT.data;
-    for(int i = 0; i < 29;++i)
-        p[i] = 0;
-    for(int i = 29; i < 179; )
-        p[i] = round(interpolatationLineaire(i++, 0, 29, 255, 179));
-    for(int i = 179; i < 256; ++i)
-        p[i] = 255;
-    std::cerr << cvtColorRedLUT << std::endl;
-
-    std::vector<cv::Mat> bgr_planes;
-    cv::split(bgrMat, bgr_planes);
-    cv::LUT(bgr_planes[0], cvtColorBlueLUT, bgr_planes[0], 0);
-    cv::LUT(bgr_planes[1], cvtColorGreenLUT, bgr_planes[1], 0);
-    cv::LUT(bgr_planes[2], cvtColorRedLUT, bgr_planes[2], 0);
-    cv::merge(bgr_planes, bgrMat);
-    */
-
-    /*
-        uchar* p;
-        cv::Mat MRIBlueLUT(1, 256, CV_8U);
-        p = MRIBlueLUT.data;
-        for( int i = 0; i < 25; ++i)
-            p[i] = 255 * i/25;
-        for( int i = 25; i < 140; ++i)
-            p[i] = 255 - (int)((i-25) * 255/115);
-        for( int i = 140; i < 231; ++i)
-            p[i] = 0;
-        for( int i = 231; i < 256; ++i)
-            p[i] = 0;
-        //std::cerr << MRIBlueLUT << std::endl;
-
-        cv::Mat MRIGreenLUT(1, 256, CV_8U);
-        p = MRIGreenLUT.data;
-        for( int i = 0; i < 25; ++i)
-            p[i] = 0;
-        for( int i = 25; i < 140; ++i)
-            p[i] = 255 * (i-25)/115;
-        for( int i = 140; i < 231; ++i)
-            p[i] = 255 - (int)((i-115) * 255/115);
-        for( int i = 231; i < 256; ++i)
-            p[i] = 0;
-        //std::cerr << MRIGreenLUT << std::endl;
-
-        cv::Mat MRIRedLUT(1, 256, CV_8U);
-        p = MRIRedLUT.data;
-        for( int i = 0; i < 25; ++i)
-            p[i] = 0;
-        for( int i = 25; i < 140; ++i)
-            p[i] = 0;
-        for( int i = 140; i < 231; ++i)
-            p[i] = 255 * (i-115)/115;
-        for( int i = 231; i < 256; ++i)
-            p[i] = 255;
-        //std::cerr << MRIRedLUT << std::endl;
-
-        std::vector<cv::Mat> bgr_planes;
-        cv::split(bgrMat, bgr_planes);
-        cv::LUT(bgr_planes[0], MRIBlueLUT, bgr_planes[0], 0);
-        cv::LUT(bgr_planes[1], MRIGreenLUT, bgr_planes[1], 0);
-        cv::LUT(bgr_planes[2], MRIRedLUT, bgr_planes[2], 0);
-        cv::merge(bgr_planes, bgrMat);
-    */
-    /*
-        uchar* p;
-        cv::Mat ThermalBlueLUT(1, 256, CV_8U);
-        p = ThermalBlueLUT.data;
-        for( int i = 0; i < 15; ++i)
-            p[i] = 90 * i/15;
-        for( int i = 15; i < 195; ++i)
-            p[i] = 90 - (i-15) * 90/180;
-        for( int i = 195; i < 256; ++i)
-            p[i] = 255 * (i-180)/180;
-        std::cerr << ThermalBlueLUT << std::endl;
-
-        cv::Mat ThermalGreenLUT(1, 256, CV_8U);
-        p = ThermalGreenLUT.data;
-        for( int i = 0; i < 15; ++i)
-            p[i] = 0;
-        for( int i = 15; i < 195; ++i)
-            p[i] = 255 * (i-15)/180;
-        for( int i = 195; i < 256; ++i)
-            p[i] = 255;
-        std::cerr << ThermalGreenLUT << std::endl;
-
-        cv::Mat ThermalRedLUT(1, 256, CV_8U);
-        p = ThermalRedLUT.data;
-        for( int i = 0; i < 25; ++i)
-            p[i] = 90 * i/15;
-        for( int i = 15; i < 195; ++i)
-            p[i] = 90 + (i-15) * 155/180;
-        for( int i = 195; i < 256; ++i)
-            p[i] = 255;
-        std::cerr << ThermalRedLUT << std::endl;
-
-        std::vector<cv::Mat> bgr_planes;
-        cv::split(bgrMat, bgr_planes);
-        cv::LUT(bgr_planes[0], ThermalBlueLUT, bgr_planes[0], 0);
-        cv::LUT(bgr_planes[1], ThermalGreenLUT, bgr_planes[1], 0);
-        cv::LUT(bgr_planes[2], ThermalRedLUT, bgr_planes[2], 0);
-        cv::merge(bgr_planes, bgrMat);
-    */
-    /*
-    uchar* p;
-    cv::Mat JetBlueLUT(1, 256, CV_8U);
-    p = JetBlueLUT.data;
-    for(int i = 0; i < 32;)
-        p[i] = round(interpolatationLineaire(i++, 121, 0, 255,32));
-    for(int i = 32; i < 99; ++i)
-        p[i] = 255;
-    for(int i = 99; i < 159; )
-        p[i] = round(interpolatationLineaire(i++, 255, 99, 0, 159));
-    for(int i = 159; i < 223; ++i)
-        p[i] = 0;
-    for(int i = 223; i < 256; ++i)
-        p[i] = 0;
-    std::cerr << JetBlueLUT << std::endl;
-
-    cv::Mat JetGreenLUT(1, 256, CV_8U);
-    p = JetGreenLUT.data;
-    for(int i = 0; i < 32; ++i)
-        p[i] = 0;
-    for(int i = 32; i < 99; )
-        p[i] = round(interpolatationLineaire(i++, 0, 32, 255, 99));
-    for(int i = 99; i < 159; ++i)
-        p[i] = 255;
-    for(int i = 159; i < 223; )
-        p[i] = round(interpolatationLineaire(i++, 255, 159, 0, 223));
-    for(int i = 223; i < 256; ++i)
-        p[i] = 0;
-    std::cerr << JetGreenLUT << std::endl;
-
-    cv::Mat JetRedLUT(1, 256, CV_8U);
-    p = JetRedLUT.data;
-    for(int i = 0; i < 32; ++i)
-        p[i] = 0;
-    for(int i = 32; i < 99; ++i)
-        p[i] = 0;
-    for(int i = 99; i < 159; )
-        p[i] = round(interpolatationLineaire(i++, 0, 99, 255, 159));
-    for(int i = 159; i < 223; ++i)
-        p[i] = 255;
-    for(int i = 223; i < 256; )
-        p[i] = cv::saturate_cast<uchar>(interpolatationLineaire(i++, 255, 223, 121, 255));
-    std::cerr << JetRedLUT << std::endl;
-
-    std::vector<cv::Mat> bgr_planes;
-    cv::split(bgrMat, bgr_planes);
-    cv::LUT(bgr_planes[0], JetBlueLUT, bgr_planes[0], 0);
-    cv::LUT(bgr_planes[1], JetGreenLUT, bgr_planes[1], 0);
-    cv::LUT(bgr_planes[2], JetRedLUT, bgr_planes[2], 0);
-    cv::merge(bgr_planes, bgrMat);
-    */
-    /*
-    uchar* p;
-    cv::Mat C2HBlueLUT(1, 256, CV_8U);
-    p = C2HBlueLUT.data;
-    for(int i = 0; i < 85; ++i)
-        p[i] = 255;
-    for(int i = 85; i < 170;)
-        p[i] = round(interpolatationLineaire(i++, 255, 85, 0, 170));
-    for(int i = 170; i < 256; ++i)
-        p[i] = 0;
-    std::cerr << C2HBlueLUT << std::endl;
-
-    cv::Mat C2HGreenLUT(1, 256, CV_8U);
-    p = C2HGreenLUT.data;
-    for(int i = 0; i < 85;)
-        p[i] = round(interpolatationLineaire(i++, 0, 0, 255, 85));
-    for(int i = 85; i < 170; ++i)
-        p[i] = 255;
-    for(int i = 170; i < 256; )
-        p[i] = round(interpolatationLineaire(i++, 255, 170, 0, 255));
-    std::cerr << C2HGreenLUT << std::endl;
-
-    cv::Mat C2HRedLUT(1, 256, CV_8U);
-    p = C2HRedLUT.data;
-    for(int i = 0; i < 85;++i)
-        p[i] = 0;
-    for(int i = 85; i < 170; )
-        p[i] = round(interpolatationLineaire(i++, 0, 85, 255, 170));
-    for(int i = 170; i < 256; ++i)
-        p[i] = 255;
-    std::cerr << C2HRedLUT << std::endl;
-
-    std::vector<cv::Mat> bgr_planes;
-    cv::split(bgrMat, bgr_planes);
-    cv::LUT(bgr_planes[0], C2HBlueLUT, bgr_planes[0], 0);
-    cv::LUT(bgr_planes[1], C2HGreenLUT, bgr_planes[1], 0);
-    cv::LUT(bgr_planes[2], C2HRedLUT, bgr_planes[2], 0);
-    cv::merge(bgr_planes, bgrMat);
-    */
 
     cvMatToQImage(bgrMat, argbImage);
     creerFenetre(QPixmap::fromImage(argbImage), titre);
@@ -1424,55 +1058,6 @@ void MainWindow::calculerCalibration (QImage& argbImage, QString titre, double v
     cv::Mat bgrMat;
     QImageTocvMat(argbImage, bgrMat);
 
-    /*int min_0 = 256, min_1 = 256, min_2 = 256;
-    int max_0 = -1, max_1 = -1, max_2 = -1;
-    int i_0 = 0, i_1 = 0, i_2 = 0;
-    cv::MatIterator_<cv::Vec3b> it, end;
-    for(it = bgrMat.begin<cv::Vec3b>(), end = bgrMat.end<cv::Vec3b>(); it != end; ++it) {
-        i_0 = (*it)[0];
-        i_1 = (*it)[1];
-        i_2 = (*it)[2];
-        if (i_0 < min_0) min_0 = i_0;
-        if (i_0 > max_0) max_0 = i_0;
-        if (i_1 < min_1) min_1 = i_1;
-        if (i_1 > max_1) max_1 = i_1;
-        if (i_2 < min_2) min_2 = i_2;
-        if (i_2 > max_2) max_2 = i_2;
-    }
-    double m_0 = (valeurMax - valeurMin)/(max_0 - min_0);
-    double b_0 = valeurMin - m_0 * min_0;
-    double m_1 = (valeurMax - valeurMin)/(max_1 - min_1);
-    double b_1 = valeurMin - m_1 * min_1;
-    double m_2 = (valeurMax - valeurMin)/(max_2 - min_2);
-    double b_2 = valeurMin - m_2 * min_2;
-    uchar lookup_0 [256], lookup_1 [256], lookup_2 [256];
-
-    for(int i = 0; i < min_0; i++)
-        lookup_0[i] = 0;
-    for(int i = min_0; i <= max_0; i++)
-        lookup_0[i] = round(m_0 * i + b_0);
-    for(int i = max_0 + 1; i < 256; i++)
-        lookup_0[i] = 0;
-
-    for(int i = 0; i < min_1; i++)
-        lookup_1[i] = 0;
-    for(int i = min_1; i <= max_1; i++)
-        lookup_1[i] = round(m_1 * i + b_1);
-    for(int i = max_0 + 1; i < 256; i++)
-        lookup_1[i] = 0;
-
-    for(int i = 0; i < min_2; i++)
-        lookup_2[i] = 0;
-    for(int i = min_2; i <= max_2; i++)
-        lookup_2[i] = round(m_2 * i + b_2);
-    for(int i = max_2 + 1; i < 256; i++)
-        lookup_2[i] = 0;
-
-    for(it = bgrMat.begin<cv::Vec3b>(), end = bgrMat.end<cv::Vec3b>(); it != end; ++it) {
-        (*it)[0] = lookup_0[(*it)[0]];
-        (*it)[1] = lookup_1[(*it)[1]];
-        (*it)[2] = lookup_2[(*it)[2]];
-    }*/
     cv::normalize(bgrMat, bgrMat, valeurMin, valeurMax, CV_MINMAX);
 
     cvMatToQImage(bgrMat, argbImage);
@@ -1684,13 +1269,7 @@ void MainWindow::calculerMinimum (QImage& argbImageGauche, QImage& argbImageDroi
     cv::Mat bgrMatD;
     QImageTocvMat(argbImageDroite, bgrMatD);
 
-    /*cv::Mat dst(bgrMatG.rows, bgrMatG.cols, bgrMatG.type());
-    cv::MatIterator_<cv::Vec3b> it1, it2, it3, end;
-    for(it1 = bgrMatG.begin<cv::Vec3b>(), it2 = bgrMatD.begin<cv::Vec3b>(), it3 = dst.begin<cv::Vec3b>(), end = bgrMatG.end<cv::Vec3b>(); it1 != end; ++it1, ++it2, ++it3) {
-        (*it3)[0] = std::min((*it1)[0], (*it2)[0]);
-        (*it3)[1] = std::min((*it1)[1], (*it2)[1]);
-        (*it3)[2] = std::min((*it1)[2], (*it2)[2]);
-    }*/cv::Mat dst;cv::min(bgrMatG, bgrMatD, dst);
+    cv::Mat dst;cv::min(bgrMatG, bgrMatD, dst);
 
     QImage result;
     cvMatToQImage(dst, result);
@@ -1720,13 +1299,7 @@ void MainWindow::calculerMaximum (QImage& argbImageGauche, QImage& argbImageDroi
     cv::Mat bgrMatD;
     QImageTocvMat(argbImageDroite, bgrMatD);
 
-    /*cv::Mat dst(bgrMatG.rows, bgrMatG.cols, bgrMatG.type());
-    cv::MatIterator_<cv::Vec3b> it1, it2, it3, end;
-    for(it1 = bgrMatG.begin<cv::Vec3b>(), it2 = bgrMatD.begin<cv::Vec3b>(), it3 = dst.begin<cv::Vec3b>(), end = bgrMatG.end<cv::Vec3b>(); it1 != end; ++it1, ++it2, ++it3) {
-        (*it3)[0] = std::max((*it1)[0], (*it2)[0]);
-        (*it3)[1] = std::max((*it1)[1], (*it2)[1]);
-        (*it3)[2] = std::max((*it1)[2], (*it2)[2]);
-    }*/cv::Mat dst;cv::max(bgrMatG, bgrMatD, dst);
+    cv::Mat dst;cv::max(bgrMatG, bgrMatD, dst);
 
     QImage result;
     cvMatToQImage(dst, result);
@@ -1756,13 +1329,7 @@ void MainWindow::calculerAND (QImage& argbImageGauche, QImage& argbImageDroite, 
     cv::Mat bgrMatD;
     QImageTocvMat(argbImageDroite, bgrMatD);
 
-    /*cv::Mat dst(bgrMatG.rows, bgrMatD.cols, bgrMatG.type());
-    cv::MatIterator_<cv::Vec3b> it1, it2, it3, end;
-    for(it1 = bgrMatG.begin<cv::Vec3b>(), it2 = bgrMatD.begin<cv::Vec3b>(), it3 = dst.begin<cv::Vec3b>(), end = bgrMatG.end<cv::Vec3b>(); it1 != end; ++it1, ++it2, ++it3) {
-        (*it3)[0] = (*it1)[0] & (*it2)[0];
-        (*it3)[1] = (*it1)[1] & (*it2)[1];
-        (*it3)[2] = (*it1)[2] & (*it2)[2];
-    }*/cv::Mat dst; cv::bitwise_and(bgrMatG, bgrMatD, dst, cv::noArray());
+    cv::Mat dst; cv::bitwise_and(bgrMatG, bgrMatD, dst, cv::noArray());
 
     QImage result;
     cvMatToQImage(dst, result);
@@ -1792,13 +1359,7 @@ void MainWindow::calculerOR (QImage& argbImageGauche, QImage& argbImageDroite, Q
     cv::Mat bgrMatD;
     QImageTocvMat(argbImageDroite, bgrMatD);
 
-    /*cv::Mat dst(bgrMatG.rows, bgrMatD.cols, bgrMatG.type());
-    cv::MatIterator_<cv::Vec3b> it1, it2, it3, end;
-    for(it1 = bgrMatG.begin<cv::Vec3b>(), it2 = bgrMatD.begin<cv::Vec3b>(), it3 = dst.begin<cv::Vec3b>(), end = bgrMatG.end<cv::Vec3b>(); it1 != end; ++it1, ++it2, ++it3) {
-        (*it3)[0] = (*it1)[0] | (*it2)[0];
-        (*it3)[1] = (*it1)[1] | (*it2)[1];
-        (*it3)[2] = (*it1)[2] | (*it2)[2];
-    }*/cv::Mat dst; cv::bitwise_or(bgrMatG, bgrMatD, dst, cv::noArray());
+    cv::Mat dst; cv::bitwise_or(bgrMatG, bgrMatD, dst, cv::noArray());
 
     QImage result;
     cvMatToQImage(dst, result);
@@ -1828,13 +1389,7 @@ void MainWindow::calculerXOR (QImage& argbImageGauche, QImage& argbImageDroite, 
     cv::Mat bgrMatD;
     QImageTocvMat(argbImageDroite, bgrMatD);
 
-    /*cv::Mat dst(bgrMatG.rows, bgrMatD.cols, bgrMatG.type());
-    cv::MatIterator_<cv::Vec3b> it1, it2, it3, end;
-    for(it1 = bgrMatG.begin<cv::Vec3b>(), it2 = bgrMatD.begin<cv::Vec3b>(), it3 = dst.begin<cv::Vec3b>(), end = bgrMatG.end<cv::Vec3b>(); it1 != end; ++it1, ++it2, ++it3) {
-        (*it3)[0] = (*it1)[0] ^ (*it2)[0];
-        (*it3)[1] = (*it1)[1] ^ (*it2)[1];
-        (*it3)[2] = (*it1)[2] ^ (*it2)[2];
-    }*/cv::Mat dst; cv::bitwise_xor(bgrMatG, bgrMatD, dst, cv::noArray());
+    cv::Mat dst; cv::bitwise_xor(bgrMatG, bgrMatD, dst, cv::noArray());
 
     QImage result;
     cvMatToQImage(dst, result);
@@ -1851,12 +1406,7 @@ void MainWindow::calculerNOT (QImage& argbImage, QString titre) {
     cv::Mat bgrMat;
     QImageTocvMat(argbImage, bgrMat);
 
-    /*cv::MatIterator_<cv::Vec3b> it, end;
-    for(it = bgrMat.begin<cv::Vec3b>(), end = bgrMat.end<cv::Vec3b>(); it != end; ++it) {
-        (*it)[0] = ~(*it)[0];
-        (*it)[1] = ~(*it)[1];
-        (*it)[2] = ~(*it)[2];
-    }*/cv::bitwise_not(bgrMat, bgrMat, cv::noArray());
+    cv::bitwise_not(bgrMat, bgrMat, cv::noArray());
 
     cvMatToQImage(bgrMat, argbImage);
     creerFenetre(QPixmap::fromImage(argbImage), titre);
@@ -1901,7 +1451,7 @@ void MainWindow::afficherQuantification (QLabel* label) {
 void MainWindow::calculerQuantification (QImage& argbImage, QString titre, int bits) {
     cv::Mat bgrMat;
     QImageTocvMat(argbImage, bgrMat);
-    int masque = (255>>(8-bits))<<(8-bits); //suite de '1' repetee "bits" fois (11111..0)
+    int masque = (255>>(8-bits))<<(8-bits);
 
     cv::MatIterator_<cv::Vec3b> it, end;
     for(it = bgrMat.begin<cv::Vec3b>(), end = bgrMat.end<cv::Vec3b>(); it != end; ++it) {
@@ -2207,7 +1757,6 @@ void MainWindow::afficherMoyenneur3x3 (QLabel* label) {
     image = calculerMoyenneur3x3  (image, cv::Point(-1,-1), BORDER_TYPE);
     double t = 1000 * (cv::getTickCount() - t0)/cv::getTickFrequency();
     dernierTempsDeCalcul = t;
-    //tempsCalcul[qHash(label)] = t;
     creerFenetre(QPixmap::fromImage(image), titre);
 }
 
@@ -2224,15 +1773,7 @@ const QImage& MainWindow::calculerMoyenneur3x3 (const QImage& argbImage, cv::Poi
     static QImage result;
     cvMatToQImage(bgrMat, result);
     return result;
-    //cvMatToQImage(bgrMat, argbImage);
-    //creerFenetre(QPixmap::fromImage(argbImage), titre);
 }
-
-/*** calculer le temps d'execution
-double t = (double)getTickCount();
-// do something ...
-t = ((double)getTickCount() - t)/getTickFrequency();
-*/
 
 void MainWindow::afficherMoyenneurNxN (QLabel* label) {
     QImage image = label->pixmap()->toImage();
@@ -2245,7 +1786,6 @@ void MainWindow::afficherMoyenneurNxN (QLabel* label) {
     image = calculerMoyenneurNxN (image, cv::Size (N, N), cv::Point (-1, -1), BORDER_TYPE);
     double t = 1000 * (cv::getTickCount() - t0)/cv::getTickFrequency();
     dernierTempsDeCalcul = t;
-    //tempsCalcul[qHash(label)] = t;
     creerFenetre(QPixmap::fromImage(image), titre);
 }
 
@@ -2258,8 +1798,6 @@ const QImage& MainWindow::calculerMoyenneurNxN (const QImage& argbImage, cv::Siz
     static QImage result;
     cvMatToQImage(bgrMat, result);
     return result;
-    //cvMatToQImage(bgrMat, argbImage);
-    //creerFenetre(QPixmap::fromImage(argbImage), titre);
 }
 
 void MainWindow::afficherLaplacien (QLabel* label) {
@@ -2334,17 +1872,10 @@ void MainWindow::calculerVFiltre (QImage& argbImage, QString titre, int ksize) {
         int rows = gMat.rows, cols = gMat.cols;
         int size = (ksize - 1)/2;
         double best_mean, best_stddev, mean, stddev;
-        //cv::Mat result (rows, cols, CV_8U);
         cv::Mat result = gMat.clone();
         uchar* p = (uchar*)result.data;
         for (int y = 0; y < ksize-1; y++) {
             for (int x = 0; x < ksize-1; x++) {
-                /*std::cerr << x << ' ' << y << std::endl;
-                std::cerr << cv::Rect(0, 0, x+1, y+1) << std::endl;
-                std::cerr << cv::Rect(x, 0, ksize, y+1) << std::endl;
-                std::cerr << cv::Rect(0, y, x+1, ksize) << std::endl;
-                std::cerr << cv::Rect(x, y, ksize, ksize) << std::endl;
-                std::cerr << cv::Rect(0, 0, size+1, size+1) << std::endl;*/
                 cv::Mat q0(gMat, cv::Rect(0, 0, x+1, y+1));       // Top-Left
                 cv::Mat q1(gMat, cv::Rect(x, 0, ksize, y+1));     // Top-Right
                 cv::Mat q2(gMat, cv::Rect(0, y, x+1, ksize));     // Bottom-Left
@@ -2359,25 +1890,6 @@ void MainWindow::calculerVFiltre (QImage& argbImage, QString titre, int ksize) {
                     mean = mean_m.at<double>(0, 0);stddev = stddev_m.at<double>(0,0);
                     if(stddev < best_stddev) {best_stddev = stddev; best_mean = mean;}
                 }
-                /*cv::meanStdDev(q0, mean_m, stddev_m, cv::noArray());
-                mean = mean_m.at<double>(0, 0);stddev = stddev_m.at<double>(0,0);
-                if(stddev < best_stddev) {best_stddev = stddev; best_mean = mean;}
-
-                cv::meanStdDev(q1, mean_m, stddev_m, cv::noArray());
-                mean = mean_m.at<double>(0, 0);stddev = stddev_m.at<double>(0,0);
-                if(stddev < best_stddev) {best_stddev = stddev; best_mean = mean;}
-
-                cv::meanStdDev(q2, mean_m, stddev_m, cv::noArray());
-                mean = mean_m.at<double>(0, 0);stddev = stddev_m.at<double>(0,0);
-                if(stddev < best_stddev) {best_stddev = stddev; best_mean = mean;}
-
-                cv::meanStdDev(q3, mean_m, stddev_m, cv::noArray());
-                mean = mean_m.at<double>(0, 0);stddev = stddev_m.at<double>(0,0);
-                if(stddev < best_stddev) {best_stddev = stddev; best_mean = mean;}
-
-                cv::meanStdDev(q4, mean_m, stddev_m, cv::noArray());
-                mean = mean_m.at<double>(0, 0);stddev = stddev_m.at<double>(0,0);
-                if(stddev < best_stddev) {best_stddev = stddev; best_mean = mean;}*/
 
                 *(p + y*cols+x) = best_mean;
             }
@@ -2549,7 +2061,6 @@ void MainWindow::calculerVFiltre (QImage& argbImage, QString titre, int ksize) {
             }
         }
         cv::cvtColor(result, bgrMat, CV_GRAY2BGR);
-    //} else { return; }
 
     cvMatToQImage(bgrMat, argbImage);
     creerFenetre(QPixmap::fromImage(argbImage), titre);
@@ -2641,155 +2152,11 @@ void MainWindow::calculerSeuillageManuelSimple (QImage& argbImage, QString titre
 void MainWindow::afficherSeuillageVarianceSimple (QLabel* label) {
     QImage image = label->pixmap()->toImage();
     bool ok = true;
-    //int seuil = QInputDialog::getInt(this, tr("Seuillage Simple (Variance interclasse maximum)"), tr("Seuil (entre 0 et 255): "), 127, 0, 255, 1, &ok, 0);
     if (!ok) return;
-    statusBar()->showMessage(tr("Seuillage Simple [Variance]: "));//.arg(seuil));
+    statusBar()->showMessage(tr("Seuillage Simple [Variance]: "));
     QString titre = QString("Seuillage Simple [Variance]: ") + windowTitle[qHash(label)];
     calculerSeuillageVarianceSimple (image, titre, 0, 255);
 }
-
-/*
-static double
-getThreshVal_Otsu_8u( const Mat& _src )
-{
-    Size size = _src.size();
-    if( _src.isContinuous() )
-    {
-        size.width *= size.height;
-        size.height = 1;
-    }
-    const int N = 256;
-    int i, j, h[N] = {0};
-    for( i = 0; i < size.height; i++ )
-    {
-        const uchar* src = _src.data + _src.step*i;
-        j = 0;
-        #if CV_ENABLE_UNROLLED
-        for( ; j <= size.width - 4; j += 4 )
-        {
-            int v0 = src[j], v1 = src[j+1];
-            h[v0]++; h[v1]++;
-            v0 = src[j+2]; v1 = src[j+3];
-            h[v0]++; h[v1]++;
-        }
-        #endif
-        for( ; j < size.width; j++ )
-            h[src[j]]++;
-    }
-
-    double mu = 0, scale = 1./(size.width*size.height);
-    for( i = 0; i < N; i++ )
-        mu += i*(double)h[i];
-
-    mu *= scale;
-    double mu1 = 0, q1 = 0;
-    double max_sigma = 0, max_val = 0;
-
-    for( i = 0; i < N; i++ )
-    {
-        double p_i, q2, mu2, sigma;
-
-        p_i = h[i]*scale;
-        mu1 *= q1;
-        q1 += p_i;
-        q2 = 1. - q1;
-
-        if( std::min(q1,q2) < FLT_EPSILON || std::max(q1,q2) > 1. - FLT_EPSILON )
-            continue;
-
-        mu1 = (mu1 + i*p_i)/q1;
-        mu2 = (mu - q1*mu1)/q2;
-        sigma = q1*q2*(mu1 - mu2)*(mu1 - mu2);
-        if( sigma > max_sigma )
-        {
-            max_sigma = sigma;
-            max_val = i;
-        }
-    }
-
-    return max_val;
-}
-
-double cv::threshold( InputArray _src, OutputArray _dst, double thresh, double maxval, int type )
-{
-    Mat src = _src.getMat();
-    bool use_otsu = (type & THRESH_OTSU) != 0;
-    type &= THRESH_MASK;
-
-    if( use_otsu )
-    {
-        CV_Assert( src.type() == CV_8UC1 );
-        thresh = getThreshVal_Otsu_8u(src);
-    }
-
-    _dst.create( src.size(), src.type() );
-    Mat dst = _dst.getMat();
-
-    if( src.depth() == CV_8U )
-    {
-        int ithresh = cvFloor(thresh);
-        thresh = ithresh;
-        int imaxval = cvRound(maxval);
-        if( type == THRESH_TRUNC )
-            imaxval = ithresh;
-        imaxval = saturate_cast<uchar>(imaxval);
-
-        if( ithresh < 0 || ithresh >= 255 )
-        {
-            if( type == THRESH_BINARY || type == THRESH_BINARY_INV ||
-                ((type == THRESH_TRUNC || type == THRESH_TOZERO_INV) && ithresh < 0) ||
-                (type == THRESH_TOZERO && ithresh >= 255) )
-            {
-                int v = type == THRESH_BINARY ? (ithresh >= 255 ? 0 : imaxval) :
-                        type == THRESH_BINARY_INV ? (ithresh >= 255 ? imaxval : 0) :
-                        / *type == THRESH_TRUNC ? imaxval :* / 0;
-                dst.setTo(v);
-            }
-            else
-                src.copyTo(dst);
-            return thresh;
-        }
-        thresh = ithresh;
-        maxval = imaxval;
-    }
-    else if( src.depth() == CV_16S )
-    {
-        int ithresh = cvFloor(thresh);
-        thresh = ithresh;
-        int imaxval = cvRound(maxval);
-        if( type == THRESH_TRUNC )
-            imaxval = ithresh;
-        imaxval = saturate_cast<short>(imaxval);
-
-        if( ithresh < SHRT_MIN || ithresh >= SHRT_MAX )
-        {
-            if( type == THRESH_BINARY || type == THRESH_BINARY_INV ||
-               ((type == THRESH_TRUNC || type == THRESH_TOZERO_INV) && ithresh < SHRT_MIN) ||
-               (type == THRESH_TOZERO && ithresh >= SHRT_MAX) )
-            {
-                int v = type == THRESH_BINARY ? (ithresh >= SHRT_MAX ? 0 : imaxval) :
-                type == THRESH_BINARY_INV ? (ithresh >= SHRT_MAX ? imaxval : 0) :
-                / *type == THRESH_TRUNC ? imaxval :* / 0;
-                dst.setTo(v);
-            }
-            else
-                src.copyTo(dst);
-            return thresh;
-        }
-        thresh = ithresh;
-        maxval = imaxval;
-    }
-    else if( src.depth() == CV_32F )
-        ;
-    else
-        CV_Error( CV_StsUnsupportedFormat, "" );
-
-    parallel_for_(Range(0, dst.rows),
-                  ThresholdRunner(src, dst, thresh, maxval, type),
-                  dst.total()/(double)(1<<16));
-    return thresh;
-}
-*/
 
 void MainWindow::calculerSeuillageVarianceSimple (QImage& argbImage, QString titre, double seuil, double maxval) {
     cv::Mat bgrMat;
@@ -2820,17 +2187,6 @@ const QImage& MainWindow::calculerSeuillageManuelDouble (const QImage& argbImage
     static cv::Mat bgrMat;
     QImageTocvMat(argbImage, bgrMat);
 
-/*
-    uchar lookup [256];
-    for(int i = 0; i < 256; i++)
-        lookup[i] = 255 - i;
-    cv::MatIterator_<cv::Vec3b> it, end;
-    for(it = bgrMat.begin<cv::Vec3b>(), end = bgrMat.end<cv::Vec3b>(); it != end; ++it) {
-        (*it)[0] = lookup[(*it)[0]];
-        (*it)[1] = lookup[(*it)[1]];
-        (*it)[2] = lookup[(*it)[2]];
-    }
-*/
     cv::MatIterator_<cv::Vec3b> it, end;
     for(it = bgrMat.begin<cv::Vec3b>(), end = bgrMat.end<cv::Vec3b>(); it != end; ++it) {
         (*it)[0] = (*it)[0] < seuilBas ? minVal : (*it)[0] > seuilHaut ? maxVal : midVal;
@@ -2840,7 +2196,6 @@ const QImage& MainWindow::calculerSeuillageManuelDouble (const QImage& argbImage
 
     static QImage result;
     cvMatToQImage(bgrMat, result);
-    //creerFenetre(QPixmap::fromImage(argbImage), titre);
     return result;
 }
 
@@ -2861,269 +2216,6 @@ void MainWindow::calculerSeuillageVarianceDouble (QImage& argbImage, QString tit
     QImageTocvMat(argbImage, bgrMat);
 
     cv::cvtColor(bgrMat, bgrMat, CV_BGR2GRAY);
-    //C++: double kmeans(InputArray data, int K, InputOutputArray bestLabels, TermCriteria criteria, int attempts, int flags, OutputArray centers=noArray() )
-    /*cv::Mat data, labels(256, 1, CV_32SC1);//, centers;
-    bgrMat.convertTo(data, CV_32F, 1.f, 0);
-    int* labelsTable = (int*)labels.data;
-    for(int i = 0; i < 108; i++)
-        labelsTable[i] = 0;
-    for(int i = 108; i < 157; i++)
-        labelsTable[i] = 1;
-    for(int i = 157; i < 256; i++)
-        labelsTable[i] = 2;
-    std::cerr << labels.cols << ' ' << labels.rows << std::endl;
-    std::cerr << (labels.isContinuous()?"yes":"no") << std::endl;
-    std::cerr << labels.type() << std::endl;
-    std::cerr << labels << std::endl;
-    cv::TermCriteria criteria;
-    criteria.epsilon = 0.000001;
-    //cv::kmeans(data, 3, labels, criteria, 30, cv::KMEANS_PP_CENTERS, centers);
-    cv::kmeans(data, 3, labels, criteria, 100, cv::KMEANS_USE_INITIAL_LABELS, cv::noArray());
-    std::cerr << labels.cols << ' ' << labels.rows << std::endl;
-    std::cerr << (labels.isContinuous()?"yes":"no") << std::endl;
-    std::cerr << labels.type() << std::endl;
-    std::cerr << labels << std::endl;
-    //std::cerr << centers.cols << ' ' << centers.rows << std::endl;
-    //std::cerr << centers << std::endl;return;
-    int rows = bgrMat.rows;
-    int cols = bgrMat.cols;
-    cols *= rows;
-    uchar c, v; uchar* p = (uchar*)bgrMat.data;
-    for (int i = 0; i < cols; i++) {
-        c = labelsTable[p[i]];
-        v = c == 0 ? 0 : c == 1 ? 127 : 255;
-        p[i] = v;
-    }*/
-
-/*
-void cv::calcCovarMatrix( const Mat* data, int nsamples, Mat& covar, Mat& _mean, int flags, int ctype )
-{
-    CV_Assert( data && nsamples > 0 );
-    Size size = data[0].size();
-    int sz = size.width * size.height, esz = (int)data[0].elemSize();
-    int type = data[0].type();
-    Mat mean;
-    ctype = std::max(std::max(CV_MAT_DEPTH(ctype >= 0 ? ctype : type), _mean.depth()), CV_32F);
-
-    if( (flags & CV_COVAR_USE_AVG) != 0 )
-    {
-        CV_Assert( _mean.size() == size );
-        if( _mean.isContinuous() && _mean.type() == ctype )
-            mean = _mean.reshape(1, 1);
-        else
-        {
-            _mean.convertTo(mean, ctype);
-            mean = mean.reshape(1, 1);
-        }
-    }
-
-    Mat _data(nsamples, sz, type);
-
-    for( int i = 0; i < nsamples; i++ )
-    {
-        CV_Assert( data[i].size() == size && data[i].type() == type );
-        if( data[i].isContinuous() )
-            memcpy( _data.ptr(i), data[i].data, sz*esz );
-        else
-        {
-            Mat dataRow(size.height, size.width, type, _data.ptr(i));
-            data[i].copyTo(dataRow);
-        }
-    }
-
-    calcCovarMatrix( _data, covar, mean, (flags & ~(CV_COVAR_ROWS|CV_COVAR_COLS)) | CV_COVAR_ROWS, ctype );
-    if( (flags & CV_COVAR_USE_AVG) == 0 )
-        _mean = mean.reshape(1, size.height);
-}
-
-void cv::calcCovarMatrix( InputArray _src, OutputArray _covar, InputOutputArray _mean, int flags, int ctype )
-{
-    if(_src.kind() == _InputArray::STD_VECTOR_MAT)
-    {
-        std::vector<cv::Mat> src;
-        _src.getMatVector(src);
-
-        CV_Assert( src.size() > 0 );
-
-        Size size = src[0].size();
-        int type = src[0].type();
-
-        ctype = std::max(std::max(CV_MAT_DEPTH(ctype >= 0 ? ctype : type), _mean.depth()), CV_32F);
-
-        Mat _data(static_cast<int>(src.size()), size.area(), type);
-
-        int i = 0;
-        for(vector<cv::Mat>::iterator each = src.begin(); each != src.end(); each++, i++ )
-        {
-            CV_Assert( (*each).size() == size && (*each).type() == type );
-            Mat dataRow(size.height, size.width, type, _data.ptr(i));
-            (*each).copyTo(dataRow);
-        }
-
-        Mat mean;
-        if( (flags & CV_COVAR_USE_AVG) != 0 )
-        {
-            CV_Assert( _mean.size() == size );
-
-            if( mean.type() != ctype )
-            {
-                mean = _mean.getMat();
-                _mean.create(mean.size(), ctype);
-                Mat tmp = _mean.getMat();
-                mean.convertTo(tmp, ctype);
-                mean = tmp;
-            }
-
-            mean = _mean.getMat().reshape(1, 1);
-        }
-
-        calcCovarMatrix( _data, _covar, mean, (flags & ~(CV_COVAR_ROWS|CV_COVAR_COLS)) | CV_COVAR_ROWS, ctype );
-
-        if( (flags & CV_COVAR_USE_AVG) == 0 )
-        {
-            mean = mean.reshape(1, size.height);
-            mean.copyTo(_mean);
-        }
-        return;
-    }
-
-    Mat data = _src.getMat(), mean;
-    CV_Assert( ((flags & CV_COVAR_ROWS) != 0) ^ ((flags & CV_COVAR_COLS) != 0) );
-    bool takeRows = (flags & CV_COVAR_ROWS) != 0;
-    int type = data.type();
-    int nsamples = takeRows ? data.rows : data.cols;
-    CV_Assert( nsamples > 0 );
-    Size size = takeRows ? Size(data.cols, 1) : Size(1, data.rows);
-
-    if( (flags & CV_COVAR_USE_AVG) != 0 )
-    {
-        mean = _mean.getMat();
-        ctype = std::max(std::max(CV_MAT_DEPTH(ctype >= 0 ? ctype : type), mean.depth()), CV_32F);
-        CV_Assert( mean.size() == size );
-        if( mean.type() != ctype )
-        {
-            _mean.create(mean.size(), ctype);
-            Mat tmp = _mean.getMat();
-            mean.convertTo(tmp, ctype);
-            mean = tmp;
-        }
-    }
-    else
-    {
-        ctype = std::max(CV_MAT_DEPTH(ctype >= 0 ? ctype : type), CV_32F);
-        reduce( _src, _mean, takeRows ? 0 : 1, CV_REDUCE_AVG, ctype );
-        mean = _mean.getMat();
-    }
-
-    mulTransposed( data, _covar, ((flags & CV_COVAR_NORMAL) == 0) ^ takeRows,
-        mean, (flags & CV_COVAR_SCALE) != 0 ? 1./nsamples : 1, ctype );
-}
-
-
-
-double cv::Mahalanobis( InputArray _v1, InputArray _v2, InputArray _icovar )
-{
-    Mat v1 = _v1.getMat(), v2 = _v2.getMat(), icovar = _icovar.getMat();
-    int type = v1.type(), depth = v1.depth();
-    Size sz = v1.size();
-    int i, j, len = sz.width*sz.height*v1.channels();
-    AutoBuffer<double> buf(len);
-    double result = 0;
-
-    CV_Assert( type == v2.type() && type == icovar.type() &&
-        sz == v2.size() && len == icovar.rows && len == icovar.cols );
-
-    sz.width *= v1.channels();
-    if( v1.isContinuous() && v2.isContinuous() )
-    {
-        sz.width *= sz.height;
-        sz.height = 1;
-    }
-
-    if( depth == CV_32F )
-    {
-        const float* src1 = (const float*)v1.data;
-        const float* src2 = (const float*)v2.data;
-        size_t step1 = v1.step/sizeof(src1[0]);
-        size_t step2 = v2.step/sizeof(src2[0]);
-        double* diff = buf;
-        const float* mat = (const float*)icovar.data;
-        size_t matstep = icovar.step/sizeof(mat[0]);
-
-        for( ; sz.height--; src1 += step1, src2 += step2, diff += sz.width )
-        {
-            for( i = 0; i < sz.width; i++ )
-                diff[i] = src1[i] - src2[i];
-        }
-
-        diff = buf;
-        for( i = 0; i < len; i++, mat += matstep )
-        {
-            double row_sum = 0;
-            j = 0;
-             #if CV_ENABLE_UNROLLED
-            for(; j <= len - 4; j += 4 )
-                row_sum += diff[j]*mat[j] + diff[j+1]*mat[j+1] +
-                           diff[j+2]*mat[j+2] + diff[j+3]*mat[j+3];
-            #endif
-            for( ; j < len; j++ )
-                row_sum += diff[j]*mat[j];
-            result += row_sum * diff[i];
-        }
-    }
-    else if( depth == CV_64F )
-    {
-        const double* src1 = (const double*)v1.data;
-        const double* src2 = (const double*)v2.data;
-        size_t step1 = v1.step/sizeof(src1[0]);
-        size_t step2 = v2.step/sizeof(src2[0]);
-        double* diff = buf;
-        const double* mat = (const double*)icovar.data;
-        size_t matstep = icovar.step/sizeof(mat[0]);
-
-        for( ; sz.height--; src1 += step1, src2 += step2, diff += sz.width )
-        {
-            for( i = 0; i < sz.width; i++ )
-                diff[i] = src1[i] - src2[i];
-        }
-
-        diff = buf;
-        for( i = 0; i < len; i++, mat += matstep )
-        {
-            double row_sum = 0;
-            j = 0;
-             #if CV_ENABLE_UNROLLED
-            for(; j <= len - 4; j += 4 )
-                row_sum += diff[j]*mat[j] + diff[j+1]*mat[j+1] +
-                           diff[j+2]*mat[j+2] + diff[j+3]*mat[j+3];
-            #endif
-            for( ; j < len; j++ )
-                row_sum += diff[j]*mat[j];
-            result += row_sum * diff[i];
-        }
-    }
-    else
-        CV_Error( CV_StsUnsupportedFormat, "" );
-
-    return std::sqrt(result);
-}
-
-double cv::Mahalonobis( InputArray _v1, InputArray _v2, InputArray _icovar )
-{
-    return Mahalanobis(_v1, _v2, _icovar);
-}
-*/
-
-    /*cv::Mat samples, covar, mean, icovar;
-    bgrMat.convertTo(samples, CV_64F, 1.d, 0);
-    //cv::calcCovarMatrix(bgrMat, covar, mean, CV_COVAR_SCRAMBLED | CV_COVAR_SCALE, CV_64F);
-    //cv::calcCovarMatrix(bgrMat, covar, mean, CV_COVAR_NORMAL, CV_64F);
-    //cv::calcCovarMatrix(bgrMat, covar, mean, CV_COVAR_SCRAMBLED, CV_64F);
-    //cv::calcCovarMatrix(&samples, samples.cols * samples.rows, covar, mean, CV_COVAR_SCRAMBLED | CV_COVAR_SCALE, CV_64F);
-    //cv::calcCovarMatrix(&samples, 256, covar, mean, CV_COVAR_NORMAL | CV_COVAR_SCALE, CV_64F);
-    cv::calcCovarMatrix(samples, covar, mean, CV_COVAR_SCRAMBLED | CV_COVAR_SCALE | CV_COVAR_ROWS, samples.type());
-    qDebug() << cv::invert(covar, icovar, cv::DECOMP_SVD);
-    qDebug() << cv::Mahalanobis(bgrMat, bgrMat, icovar);*/
     cv::Mat data, labels(256, 1, CV_32SC1);
     bgrMat.convertTo(data, CV_32F, 1.f, 0);
     int* labelsTable = (int*)labels.data;
@@ -3167,24 +2259,7 @@ void MainWindow::calculerSeuillageParHysteresis (QImage& argbImage, QString titr
     cv::Mat bgrMat;
     QImageTocvMat(argbImage, bgrMat);
 
-    /*cv::Mat gMat;
-    cv::cvtColor (bgrMat, gMat, CV_BGR2GRAY);
-    cv::blur (gMat, gMat, cv::Size(3,3), cv::Point(-1,-1), BORDER_TYPE);
-    //cv::GaussianBlur (gMat, gMat, cv::Size(3,3), 0, 0, BORDER_TYPE);
-    cv::Mat edges;
-    cv::Canny (gMat, edges, seuilBas, seuilHaut, ksize, utiliserNormeL2);
-    cv::Mat dst (bgrMat.size(), bgrMat.type(), cv::Scalar::all(0));
-    bgrMat.copyTo (dst, edges);*/
-    //calculerSeuillageManuelDouble(argbImage, seuilBas, seuilHaut, 0, SEUILLAGE_VALEUR_MIL, SEUILLAGE_VALEUR_MAX);
     uchar minVal = 0, midVal = SEUILLAGE_VALEUR_MIL, maxVal = SEUILLAGE_VALEUR_MAX;
-    /*cv::Vec3b pixel;
-    cv::MatIterator_<cv::Vec3b> it, end;
-    for(it = bgrMat.begin<cv::Vec3b>(), end = bgrMat.end<cv::Vec3b>(); it != end; ++it) {
-        pixel = *it;
-        (*it)[0] = pixel[0] < seuilBas ? minVal : pixel[0] > seuilHaut ? maxVal : midVal;
-        (*it)[1] = pixel[1] < seuilBas ? minVal : pixel[1] > seuilHaut ? maxVal : midVal;
-        (*it)[2] = pixel[2] < seuilBas ? minVal : pixel[2] > seuilHaut ? maxVal : midVal;
-    }*/
     //QImageTocvMat(argbImage, bgrMat);
     cv::cvtColor(bgrMat, bgrMat, CV_BGR2GRAY);
     uchar v; cv::MatIterator_<uchar> it, end;
@@ -3262,8 +2337,6 @@ void MainWindow::traiterPixelHysteresisfw (cv::Mat& bgrMat, cv::Mat& validation,
                 }
             } else {
                 //rien;
-                //cv::imshow("v", validation);cv::waitKey(30000);
-                //cv::imshow("b", bgrMat);cv::waitKey(30000);
             }
         }
     } else {
@@ -3306,8 +2379,6 @@ void MainWindow::traiterPixelHysteresisfw (cv::Mat& bgrMat, cv::Mat& validation,
                 }
             } else {
                 //rien;
-                //cv::imshow("v", validation);cv::waitKey(30000);
-                //cv::imshow("b", bgrMat);cv::waitKey(30000);
             }
         }
     }
@@ -3363,8 +2434,6 @@ void MainWindow::traiterPixelHysteresisbw (cv::Mat& bgrMat, cv::Mat& validation,
                 }
             } else {
                 //rien;
-                //cv::imshow("v", validation);cv::waitKey(30000);
-                //cv::imshow("b", bgrMat);cv::waitKey(30000);
             }
         }
     } else {
@@ -3407,8 +2476,6 @@ void MainWindow::traiterPixelHysteresisbw (cv::Mat& bgrMat, cv::Mat& validation,
                 }
             } else {
                 //rien;
-                //cv::imshow("v", validation);cv::waitKey(30000);
-                //cv::imshow("b", bgrMat);cv::waitKey(30000);
             }
         }
     }
@@ -3512,17 +2579,9 @@ void MainWindow::calculerGradientSobel (QImage& argbImage, QString titre, TypeSo
         dy = 1;
         cv::Sobel (gMat, dst_y, CV_16S, dx, dy, ksize, gain, offset, borderType);
         dst_y.convertTo(y, CV_32F, 1.f, 0);
-        /*cv::convertScaleAbs(dst_x, dst_x);
-        cv::convertScaleAbs(dst_y, dst_y);
-        cv::addWeighted (dst_x, 0.5, dst_y, 0.5, 0, dst_total);*/
-        //cv::imshow("Manhattan", dst_total);
-        /*x = x.mul(x);
-        y = y.mul(y);
-        s = x + y;
-        cv::sqrt(s, dst_total);*/cv::magnitude(x, y, dst_total);
+        cv::magnitude(x, y, dst_total);
         cv::normalize(dst_total, dst_total, 0, 1, CV_MINMAX);
         dst_total.convertTo(dst_total, CV_8U, 255, 0);
-        //cv::imshow("Euclidean", dst_total);
         cv::cvtColor(dst_total, bgrMat, CV_GRAY2BGR);
     }
     cvMatToQImage(bgrMat, argbImage);
@@ -3559,10 +2618,8 @@ void MainWindow::calculerGradientPrewitt (QImage& argbImage, QString titre, Type
         cv::Mat gMat;
         cv::cvtColor(bgrMat, gMat, CV_BGR2GRAY);
         cv::Mat dst;
-        //cv::Sobel (gMat, dst, CV_16S, dx, dy, ksize, gain, offset, borderType);
         Prewitt(gMat, dst, CV_16S, dx, dy, gain*25, offset, borderType);
         cv::convertScaleAbs(dst, bgrMat);
-        //cv::normalize(bgrMat, bgrMat, 0, 255, CV_MINMAX, -1, cv::Mat());
         cv::cvtColor(bgrMat, bgrMat, CV_GRAY2BGR);
     } else if (type == PREWITT_NORME) {
         cv::GaussianBlur(bgrMat, bgrMat, cv::Size(3,3), 0, 0, borderType);
@@ -3573,26 +2630,16 @@ void MainWindow::calculerGradientPrewitt (QImage& argbImage, QString titre, Type
         ///d/dx
         dx = 1;
         dy = 0;
-        //cv::Sobel (gMat, dst_x, CV_16S, dx, dy, ksize, gain, offset, borderType);
         Prewitt(gMat, dst_x, CV_16S, dx, dy, gain, offset, borderType);
         dst_x.convertTo(x, CV_32F, 1.f, 0);
         ///d/dy
         dx = 0;
         dy = 1;
-        //cv::Sobel (gMat, dst_y, CV_16S, dx, dy, ksize, gain, offset, borderType);
         Prewitt(gMat, dst_y, CV_16S, dx, dy, gain, offset, borderType);
         dst_y.convertTo(y, CV_32F, 1.f, 0);
-        //cv::convertScaleAbs(dst_x, dst_x);
-        //cv::convertScaleAbs(dst_y, dst_y);
-        //cv::addWeighted (dst_x, 0.5, dst_y, 0.5, 0, dst_total);
-        //cv::imshow("Manhattan", dst_total);
-        /*x = x.mul(x);
-        y = y.mul(y);
-        s = x + y;
-        cv::sqrt(s, dst_total);*/cv::magnitude(x, y, dst_total);
+        cv::magnitude(x, y, dst_total);
         cv::normalize(dst_total, dst_total, 0, 1, CV_MINMAX);
         dst_total.convertTo(dst_total, CV_8U, 255, 0);
-        //cv::imshow("Euclidean", dst_total);
         cv::cvtColor(dst_total, bgrMat, CV_GRAY2BGR);
     }
     cvMatToQImage(bgrMat, argbImage);
